@@ -92,6 +92,9 @@ function AppContent() {
   };
 
   const handleSaveToLocal = async () => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' + 
+                     new Date().toISOString().replace(/[:.]/g, '-').split('T')[1].split('.')[0];
+    
     const exportData = {
       fabricStates: state.fabricStates,
       fabricNotes: state.fabricNotes,
@@ -99,7 +102,11 @@ function AppContent() {
       subChecklists: state.subChecklists,
       taskCategories: state.taskCategories,
       exportDate: new Date().toISOString(),
-      version: '1.0.0'
+      version: '1.0.0',
+      savedBy: 'ACI Deployment Tracker',
+      totalFabrics: Object.keys(state.fabricStates).length,
+      totalTasks: Object.values(state.fabricStates).reduce((total, fabric) => 
+        total + Object.keys(fabric).length, 0)
     };
 
     if (window.electronAPI) {
@@ -114,7 +121,36 @@ function AppContent() {
         alert(`Error saving file: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     } else {
-      handleExportAllData();
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ACI-Deployment-Progress-${timestamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      URL.revokeObjectURL(url);
+      
+      const notification = document.createElement('div');
+      notification.innerHTML = `
+        <div style="position: fixed; top: 20px; right: 20px; background: #10B981; color: white; 
+                    padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+                    z-index: 1000; font-family: system-ui; font-size: 14px; max-width: 300px;">
+          <div style="font-weight: 600; margin-bottom: 4px;">✅ Progress Saved!</div>
+          <div style="font-size: 12px; opacity: 0.9;">File: ACI-Deployment-Progress-${timestamp}.json</div>
+          <div style="font-size: 12px; opacity: 0.9;">Check your Downloads folder</div>
+        </div>
+      `;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 4000);
     }
   };
 
@@ -178,11 +214,11 @@ function AppContent() {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={handleSaveToLocal}
-                  className="flex items-center space-x-1 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                  title="Save to Local Directory"
+                  className="flex items-center space-x-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors shadow-sm"
+                  title="Save progress to Downloads folder with timestamp"
                 >
                   <Save size={16} />
-                  <span className="text-sm font-medium">Save</span>
+                  <span className="text-sm font-medium">Save Progress</span>
                 </button>
                 <button
                   onClick={handlePrint}

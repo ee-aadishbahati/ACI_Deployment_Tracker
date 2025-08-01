@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { AppState, Task, SubChecklist, FabricProgress } from '../types';
+import { AppState, Task, SubChecklist, FabricProgress, TaskCategory } from '../types';
 import { fabricsData } from '../data/fabricsData';
 import { sectionsData } from '../data/sectionsData';
 
@@ -10,6 +10,7 @@ interface AppContextType {
   getFabricProgress: (fabricId: string) => FabricProgress;
   updateTaskState: (taskId: string, checked: boolean, fabricId?: string) => void;
   updateTaskNotes: (taskId: string, notes: string, fabricId?: string) => void;
+  updateTaskCategory: (taskId: string, category: TaskCategory, fabricId?: string) => void;
   setCurrentFabric: (fabricId: string) => void;
   setSearchQuery: (query: string) => void;
   saveSubChecklist: (name: string, items: any[]) => void;
@@ -22,6 +23,7 @@ type AppAction =
   | { type: 'SET_SEARCH_QUERY'; payload: string }
   | { type: 'UPDATE_TASK_STATE'; payload: { taskId: string; checked: boolean; fabricId: string } }
   | { type: 'UPDATE_TASK_NOTES'; payload: { taskId: string; notes: string; fabricId: string } }
+  | { type: 'UPDATE_TASK_CATEGORY'; payload: { taskId: string; category: TaskCategory; fabricId: string } }
   | { type: 'SAVE_SUB_CHECKLIST'; payload: { name: string; checklist: SubChecklist } }
   | { type: 'DELETE_SUB_CHECKLIST'; payload: string }
   | { type: 'LOAD_DATA'; payload: Partial<AppState> }
@@ -35,7 +37,8 @@ const initialState: AppState = {
   subChecklists: {},
   fabricStates: {},
   fabricNotes: {},
-  testCaseStates: {}
+  testCaseStates: {},
+  taskCategories: {}
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -68,6 +71,19 @@ function appReducer(state: AppState, action: AppAction): AppState {
           [noteFabricId]: {
             ...state.fabricNotes[noteFabricId],
             [noteTaskId]: notes
+          }
+        }
+      };
+    
+    case 'UPDATE_TASK_CATEGORY':
+      const { taskId: catTaskId, category, fabricId: catFabricId } = action.payload;
+      return {
+        ...state,
+        taskCategories: {
+          ...state.taskCategories,
+          [catFabricId]: {
+            ...state.taskCategories[catFabricId],
+            [catTaskId]: category
           }
         }
       };
@@ -129,10 +145,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       fabricNotes: state.fabricNotes,
       testCaseStates: state.testCaseStates,
       subChecklists: state.subChecklists,
+      taskCategories: state.taskCategories,
       currentFabric: state.currentFabric
     };
     localStorage.setItem('aci-deployment-tracker-data', JSON.stringify(dataToSave));
-  }, [state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.currentFabric]);
+  }, [state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.taskCategories, state.currentFabric]);
 
   const getCurrentFabricTasks = (): Task[] => {
     const currentFabric = state.fabrics.find(f => f.id === state.currentFabric);
@@ -148,7 +165,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             allTasks.push({
               ...task,
               checked: state.fabricStates[state.currentFabric]?.[task.id] || false,
-              notes: state.fabricNotes[state.currentFabric]?.[task.id] || ''
+              notes: state.fabricNotes[state.currentFabric]?.[task.id] || '',
+              category: state.taskCategories[state.currentFabric]?.[task.id] || 'none'
             });
           }
         });
@@ -231,6 +249,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const updateTaskCategory = (taskId: string, category: TaskCategory, fabricId?: string) => {
+    const targetFabricId = fabricId || state.currentFabric;
+    dispatch({
+      type: 'UPDATE_TASK_CATEGORY',
+      payload: { taskId, category, fabricId: targetFabricId }
+    });
+  };
+
   const setCurrentFabric = (fabricId: string) => {
     dispatch({ type: 'SET_CURRENT_FABRIC', payload: fabricId });
   };
@@ -264,6 +290,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     getFabricProgress,
     updateTaskState,
     updateTaskNotes,
+    updateTaskCategory,
     setCurrentFabric,
     setSearchQuery,
     saveSubChecklist,

@@ -5,6 +5,7 @@ import { FabricDashboard } from './components/FabricDashboard';
 import { TaskSection } from './components/TaskSection';
 import { SearchFilter } from './components/SearchFilter';
 import { SubChecklistManager } from './components/SubChecklistManager';
+import { PriorityCategories } from './components/PriorityCategories';
 import { useApp } from './contexts/AppContext';
 import { 
   BarChart3, 
@@ -14,12 +15,13 @@ import {
   Upload, 
   RotateCcw,
   Network,
-  Save
+  Save,
+  Star
 } from 'lucide-react';
 
 function AppContent() {
   const { state } = useApp();
-  const [activeView, setActiveView] = useState<'dashboard' | 'tasks'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'tasks' | 'priorities'>('dashboard');
   
   const currentFabric = state.fabrics.find(f => f.id === state.currentFabric);
 
@@ -33,6 +35,7 @@ function AppContent() {
       fabricNotes: state.fabricNotes,
       testCaseStates: state.testCaseStates,
       subChecklists: state.subChecklists,
+      taskCategories: state.taskCategories,
       exportDate: new Date().toISOString(),
       version: '1.0.0'
     };
@@ -94,6 +97,7 @@ function AppContent() {
       fabricNotes: state.fabricNotes,
       testCaseStates: state.testCaseStates,
       subChecklists: state.subChecklists,
+      taskCategories: state.taskCategories,
       exportDate: new Date().toISOString(),
       version: '1.0.0'
     };
@@ -156,6 +160,17 @@ function AppContent() {
                   <CheckSquare size={16} />
                   <span>Tasks</span>
                 </button>
+                <button
+                  onClick={() => setActiveView('priorities')}
+                  className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    activeView === 'priorities'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <Star size={16} />
+                  <span>Priorities</span>
+                </button>
               </div>
               
               <div className="h-6 w-px bg-gray-300" />
@@ -210,6 +225,8 @@ function AppContent() {
 
         {activeView === 'dashboard' ? (
           <FabricDashboard />
+        ) : activeView === 'priorities' ? (
+          <PriorityCategories />
         ) : (
           <div className="space-y-6">
             {/* Current Fabric Info */}

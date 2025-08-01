@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
 import { AppState, Task, SubChecklist, FabricProgress, TaskCategory } from '../types';
 import { fabricsData } from '../data/fabricsData';
 import { sectionsData } from '../data/sectionsData';
@@ -142,6 +142,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
 
   const isLocalStorageAvailable = () => {
     try {
@@ -176,9 +177,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } else {
       console.log('2. No saved data found in localStorage');
     }
+    
+    setHasLoadedFromStorage(true);
+    console.log('7. Initial load from localStorage completed, enabling saves');
   }, []);
 
   useEffect(() => {
+    if (!hasLoadedFromStorage) {
+      console.log('=== SKIPPING SAVE - NOT YET LOADED FROM STORAGE ===');
+      return;
+    }
+    
     if (!isLocalStorageAvailable()) {
       console.warn('localStorage is not available, skipping save operation');
       return;
@@ -212,7 +221,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error saving to localStorage:', error);
     }
-  }, [state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.taskCategories, state.currentFabric]);
+  }, [hasLoadedFromStorage, state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.taskCategories, state.currentFabric]);
 
   const getCurrentFabricTasks = (): Task[] => {
     const currentFabric = state.fabrics.find(f => f.id === state.currentFabric);

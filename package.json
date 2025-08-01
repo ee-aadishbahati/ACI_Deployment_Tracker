@@ -26,6 +26,7 @@
   "author": "Essential Energy",
   "license": "ISC",
   "devDependencies": {
+    "@flydotio/dockerfile": "^0.7.10",
     "@types/electron": "^1.4.38",
     "@types/node": "^24.1.0",
     "@types/react": "^19.1.9",

@@ -7,6 +7,7 @@ import { SearchFilter } from './components/SearchFilter';
 import { SubChecklistManager } from './components/SubChecklistManager';
 import { PriorityCategories } from './components/PriorityCategories';
 import { useApp } from './contexts/AppContext';
+import { apiService } from './services/api';
 import { 
   BarChart3, 
   CheckSquare, 
@@ -29,29 +30,31 @@ function AppContent() {
     window.print();
   };
 
-  const handleExportAllData = () => {
-    const exportData = {
-      fabricStates: state.fabricStates,
-      fabricNotes: state.fabricNotes,
-      testCaseStates: state.testCaseStates,
-      subChecklists: state.subChecklists,
-      taskCategories: state.taskCategories,
-      exportDate: new Date().toISOString(),
-      version: '1.0.0'
-    };
+  const handleExportAllData = async () => {
+    try {
+      const data = await apiService.getAllData();
+      const exportData = {
+        ...data,
+        exportDate: new Date().toISOString(),
+        version: '1.0.0'
+      };
 
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `aci-deployment-tracker-export-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    URL.revokeObjectURL(url);
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `aci-deployment-tracker-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      alert('Failed to export data. Please try again.');
+    }
   };
 
   const handleImportData = () => {
@@ -59,22 +62,33 @@ function AppContent() {
     input.type = 'file';
     input.accept = '.json';
     
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const importedData = JSON.parse(e.target?.result as string);
           
-          if (importedData.fabricStates && importedData.fabricNotes) {
-            localStorage.setItem('aci-deployment-tracker-data', JSON.stringify(importedData));
+          if (importedData.fabricStates !== undefined && importedData.fabricNotes !== undefined) {
+            const dataToImport = {
+              fabricStates: importedData.fabricStates || {},
+              fabricNotes: importedData.fabricNotes || {},
+              testCaseStates: importedData.testCaseStates || {},
+              subChecklists: importedData.subChecklists || {},
+              taskCategories: importedData.taskCategories || {},
+              currentFabric: importedData.currentFabric || null,
+              lastSaved: null
+            };
+            
+            await apiService.updateAllData(dataToImport);
             window.location.reload(); // Reload to apply imported data
           } else {
             alert('Invalid data format. Please select a valid export file.');
           }
         } catch (error) {
+          console.error('Error importing data:', error);
           alert('Error reading file. Please select a valid JSON export file.');
         }
       };
@@ -84,51 +98,67 @@ function AppContent() {
     input.click();
   };
 
-  const handleResetAll = () => {
+  const handleResetAll = async () => {
     if (confirm('Are you sure you want to reset all progress? This action cannot be undone.')) {
-      localStorage.removeItem('aci-deployment-tracker-data');
-      window.location.reload();
+      try {
+        const resetData = {
+          fabricStates: {},
+          fabricNotes: {},
+          testCaseStates: {},
+          subChecklists: {},
+          taskCategories: {},
+          currentFabric: null,
+          lastSaved: null
+        };
+        
+        await apiService.updateAllData(resetData);
+        window.location.reload();
+      } catch (error) {
+        console.error('Error resetting data:', error);
+        alert('Failed to reset data. Please try again.');
+      }
     }
   };
 
   const handleSaveToLocal = async () => {
     console.log('=== MANUAL SAVE TRIGGERED ===');
-    console.log('Current localStorage data:', localStorage.getItem('aci-deployment-tracker-data'));
-    console.log('Current app state:', {
-      fabricStates: state.fabricStates,
-      fabricNotes: state.fabricNotes,
-      taskCategories: state.taskCategories
-    });
     
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' + 
-                     new Date().toISOString().replace(/[:.]/g, '-').split('T')[1].split('.')[0];
-    
-    const exportData = {
-      fabricStates: state.fabricStates,
-      fabricNotes: state.fabricNotes,
-      testCaseStates: state.testCaseStates,
-      subChecklists: state.subChecklists,
-      taskCategories: state.taskCategories,
-      exportDate: new Date().toISOString(),
-      version: '1.0.0',
-      savedBy: 'ACI Deployment Tracker',
-      totalFabrics: Object.keys(state.fabricStates).length,
-      totalTasks: Object.values(state.fabricStates).reduce((total, fabric) => 
-        total + Object.keys(fabric).length, 0)
-    };
+    try {
+      const data = await apiService.getAllData();
+      await apiService.updateAllData(data);
+      
+      console.log('Current API data:', data);
+      console.log('Current app state:', {
+        fabricStates: state.fabricStates,
+        fabricNotes: state.fabricNotes,
+        taskCategories: state.taskCategories
+      });
+      
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' + 
+                       new Date().toISOString().replace(/[:.]/g, '-').split('T')[1].split('.')[0];
+      
+      const exportData = {
+        ...data,
+        exportDate: new Date().toISOString(),
+        version: '1.0.0',
+        savedBy: 'ACI Deployment Tracker',
+        totalFabrics: Object.keys(data.fabricStates).length,
+        totalTasks: Object.values(data.fabricStates).reduce((total, fabric) => 
+          total + Object.keys(fabric).length, 0)
+      };
 
-    if (window.electronAPI) {
-      try {
-        const result = await window.electronAPI.saveToLocal(exportData);
-        if (result.success) {
-          alert(`Progress saved successfully!\nFile: ${result.filename}\nLocation: SavedWork folder`);
-        } else {
-          alert(`Error saving file: ${result.error}`);
+      if (window.electronAPI) {
+        try {
+          const result = await window.electronAPI.saveToLocal(exportData);
+          if (result.success) {
+            alert(`Progress saved successfully!\nFile: ${result.filename}\nLocation: SavedWork folder`);
+          } else {
+            alert(`Error saving file: ${result.error}`);
+          }
+        } catch (error) {
+          alert(`Error saving file: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-      } catch (error) {
-        alert(`Error saving file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    } else {
+      } else {
       const dataStr = JSON.stringify(exportData, null, 2);
       const dataBlob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(dataBlob);
@@ -159,6 +189,10 @@ function AppContent() {
           notification.parentNode.removeChild(notification);
         }
       }, 4000);
+      }
+    } catch (error) {
+      console.error('Error saving to local:', error);
+      alert('Failed to save progress. Please try again.');
     }
   };
 

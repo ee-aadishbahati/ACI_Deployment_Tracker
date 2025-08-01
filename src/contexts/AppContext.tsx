@@ -1,0 +1,287 @@
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { AppState, Task, SubChecklist, FabricProgress } from '../types';
+import { fabricsData } from '../data/fabricsData';
+import { sectionsData } from '../data/sectionsData';
+
+interface AppContextType {
+  state: AppState;
+  dispatch: React.Dispatch<AppAction>;
+  getCurrentFabricTasks: () => Task[];
+  getFabricProgress: (fabricId: string) => FabricProgress;
+  updateTaskState: (taskId: string, checked: boolean, fabricId?: string) => void;
+  updateTaskNotes: (taskId: string, notes: string, fabricId?: string) => void;
+  setCurrentFabric: (fabricId: string) => void;
+  setSearchQuery: (query: string) => void;
+  saveSubChecklist: (name: string, items: any[]) => void;
+  loadSubChecklist: (name: string) => void;
+  deleteSubChecklist: (name: string) => void;
+}
+
+type AppAction = 
+  | { type: 'SET_CURRENT_FABRIC'; payload: string }
+  | { type: 'SET_SEARCH_QUERY'; payload: string }
+  | { type: 'UPDATE_TASK_STATE'; payload: { taskId: string; checked: boolean; fabricId: string } }
+  | { type: 'UPDATE_TASK_NOTES'; payload: { taskId: string; notes: string; fabricId: string } }
+  | { type: 'SAVE_SUB_CHECKLIST'; payload: { name: string; checklist: SubChecklist } }
+  | { type: 'DELETE_SUB_CHECKLIST'; payload: string }
+  | { type: 'LOAD_DATA'; payload: Partial<AppState> }
+  | { type: 'TOGGLE_SECTION'; payload: string };
+
+const initialState: AppState = {
+  fabrics: fabricsData,
+  sections: sectionsData,
+  currentFabric: 'north-it',
+  searchQuery: '',
+  subChecklists: {},
+  fabricStates: {},
+  fabricNotes: {},
+  testCaseStates: {}
+};
+
+function appReducer(state: AppState, action: AppAction): AppState {
+  switch (action.type) {
+    case 'SET_CURRENT_FABRIC':
+      return { ...state, currentFabric: action.payload };
+    
+    case 'SET_SEARCH_QUERY':
+      return { ...state, searchQuery: action.payload };
+    
+    case 'UPDATE_TASK_STATE':
+      const { taskId, checked, fabricId } = action.payload;
+      return {
+        ...state,
+        fabricStates: {
+          ...state.fabricStates,
+          [fabricId]: {
+            ...state.fabricStates[fabricId],
+            [taskId]: checked
+          }
+        }
+      };
+    
+    case 'UPDATE_TASK_NOTES':
+      const { taskId: noteTaskId, notes, fabricId: noteFabricId } = action.payload;
+      return {
+        ...state,
+        fabricNotes: {
+          ...state.fabricNotes,
+          [noteFabricId]: {
+            ...state.fabricNotes[noteFabricId],
+            [noteTaskId]: notes
+          }
+        }
+      };
+    
+    case 'SAVE_SUB_CHECKLIST':
+      return {
+        ...state,
+        subChecklists: {
+          ...state.subChecklists,
+          [action.payload.name]: action.payload.checklist
+        }
+      };
+    
+    case 'DELETE_SUB_CHECKLIST':
+      const { [action.payload]: deleted, ...remainingChecklists } = state.subChecklists;
+      return {
+        ...state,
+        subChecklists: remainingChecklists
+      };
+    
+    case 'TOGGLE_SECTION':
+      return {
+        ...state,
+        sections: state.sections.map(section =>
+          section.id === action.payload
+            ? { ...section, expanded: !section.expanded }
+            : section
+        )
+      };
+    
+    case 'LOAD_DATA':
+      return { ...state, ...action.payload };
+    
+    default:
+      return state;
+  }
+}
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [state, dispatch] = useReducer(appReducer, initialState);
+
+  useEffect(() => {
+    const savedData = localStorage.getItem('aci-deployment-tracker-data');
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        dispatch({ type: 'LOAD_DATA', payload: parsedData });
+      } catch (error) {
+        console.error('Error loading saved data:', error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const dataToSave = {
+      fabricStates: state.fabricStates,
+      fabricNotes: state.fabricNotes,
+      testCaseStates: state.testCaseStates,
+      subChecklists: state.subChecklists,
+      currentFabric: state.currentFabric
+    };
+    localStorage.setItem('aci-deployment-tracker-data', JSON.stringify(dataToSave));
+  }, [state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.currentFabric]);
+
+  const getCurrentFabricTasks = (): Task[] => {
+    const currentFabric = state.fabrics.find(f => f.id === state.currentFabric);
+    if (!currentFabric) return [];
+
+    const allTasks: Task[] = [];
+    state.sections.forEach(section => {
+      section.subsections.forEach(subsection => {
+        subsection.tasks.forEach(task => {
+          if (task.fabricSpecific || 
+              (task.ndoCentralized && currentFabric.site === 'Tertiary') ||
+              (!task.fabricSpecific && !task.ndoCentralized)) {
+            allTasks.push({
+              ...task,
+              checked: state.fabricStates[state.currentFabric]?.[task.id] || false,
+              notes: state.fabricNotes[state.currentFabric]?.[task.id] || ''
+            });
+          }
+        });
+      });
+    });
+
+    return allTasks;
+  };
+
+  const getFabricProgress = (fabricId: string): FabricProgress => {
+    const fabric = state.fabrics.find(f => f.id === fabricId);
+    if (!fabric) {
+      return {
+        fabricId,
+        totalTasks: 0,
+        completedTasks: 0,
+        totalTestCases: 0,
+        completedTestCases: 0,
+        highPriorityPending: 0,
+        criticalIssues: 0
+      };
+    }
+
+    let totalTasks = 0;
+    let completedTasks = 0;
+    let totalTestCases = 0;
+    let completedTestCases = 0;
+    let highPriorityPending = 0;
+
+    state.sections.forEach(section => {
+      section.subsections.forEach(subsection => {
+        subsection.tasks.forEach(task => {
+          if (task.fabricSpecific || 
+              (task.ndoCentralized && fabric.site === 'Tertiary') ||
+              (!task.fabricSpecific && !task.ndoCentralized)) {
+            totalTasks++;
+            if (state.fabricStates[fabricId]?.[task.id]) {
+              completedTasks++;
+            }
+            
+            if (task.testCase) {
+              totalTestCases++;
+              const testCaseState = state.testCaseStates[fabricId]?.[task.testCase.tcId];
+              if (testCaseState?.status === 'Pass') {
+                completedTestCases++;
+              }
+              if (task.testCase.priority === 'High' && testCaseState?.status === 'T.B.E.') {
+                highPriorityPending++;
+              }
+            }
+          }
+        });
+      });
+    });
+
+    return {
+      fabricId,
+      totalTasks,
+      completedTasks,
+      totalTestCases,
+      completedTestCases,
+      highPriorityPending,
+      criticalIssues: 0
+    };
+  };
+
+  const updateTaskState = (taskId: string, checked: boolean, fabricId?: string) => {
+    const targetFabricId = fabricId || state.currentFabric;
+    dispatch({
+      type: 'UPDATE_TASK_STATE',
+      payload: { taskId, checked, fabricId: targetFabricId }
+    });
+  };
+
+  const updateTaskNotes = (taskId: string, notes: string, fabricId?: string) => {
+    const targetFabricId = fabricId || state.currentFabric;
+    dispatch({
+      type: 'UPDATE_TASK_NOTES',
+      payload: { taskId, notes, fabricId: targetFabricId }
+    });
+  };
+
+  const setCurrentFabric = (fabricId: string) => {
+    dispatch({ type: 'SET_CURRENT_FABRIC', payload: fabricId });
+  };
+
+  const setSearchQuery = (query: string) => {
+    dispatch({ type: 'SET_SEARCH_QUERY', payload: query });
+  };
+
+  const saveSubChecklist = (name: string, items: any[]) => {
+    const checklist: SubChecklist = {
+      name,
+      items,
+      fabricId: state.currentFabric,
+      createdDate: new Date().toISOString(),
+      lastModified: new Date().toISOString()
+    };
+    dispatch({ type: 'SAVE_SUB_CHECKLIST', payload: { name, checklist } });
+  };
+
+  const loadSubChecklist = () => {
+  };
+
+  const deleteSubChecklist = (name: string) => {
+    dispatch({ type: 'DELETE_SUB_CHECKLIST', payload: name });
+  };
+
+  const contextValue: AppContextType = {
+    state,
+    dispatch,
+    getCurrentFabricTasks,
+    getFabricProgress,
+    updateTaskState,
+    updateTaskNotes,
+    setCurrentFabric,
+    setSearchQuery,
+    saveSubChecklist,
+    loadSubChecklist,
+    deleteSubChecklist
+  };
+
+  return (
+    <AppContext.Provider value={contextValue}>
+      {children}
+    </AppContext.Provider>
+  );
+}
+
+export function useApp() {
+  const context = useContext(AppContext);
+  if (context === undefined) {
+    throw new Error('useApp must be used within an AppProvider');
+  }
+  return context;
+}

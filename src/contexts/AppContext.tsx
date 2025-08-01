@@ -2,6 +2,8 @@ import React, { createContext, useContext, useReducer, useEffect, useState } fro
 import { AppState, Task, SubChecklist, FabricProgress, TaskCategory } from '../types';
 import { fabricsData } from '../data/fabricsData';
 import { sectionsData } from '../data/sectionsData';
+import { apiService } from '../services/api';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 interface AppContextType {
   state: AppState;
@@ -144,6 +146,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
 
+  useWebSocket({
+    onTaskStateUpdate: (fabricId: string, taskId: string, checked: boolean) => {
+      dispatch({
+        type: 'UPDATE_TASK_STATE',
+        payload: { taskId, checked, fabricId }
+      });
+    },
+    onTaskNotesUpdate: (fabricId: string, taskId: string, notes: string) => {
+      dispatch({
+        type: 'UPDATE_TASK_NOTES',
+        payload: { taskId, notes, fabricId }
+      });
+    },
+    onTaskCategoryUpdate: (fabricId: string, taskId: string, category: string) => {
+      dispatch({
+        type: 'UPDATE_TASK_CATEGORY',
+        payload: { taskId, category: category as TaskCategory, fabricId }
+      });
+    },
+  });
+
   const isLocalStorageAvailable = () => {
     try {
       const test = '__localStorage_test__';
@@ -157,29 +180,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    console.log('=== LOCALSTORAGE RESTORATION DEBUG ===');
-    const savedData = localStorage.getItem('aci-deployment-tracker-data');
-    console.log('1. Raw localStorage data:', savedData);
-    
-    if (savedData) {
+    console.log('=== API DATA RESTORATION DEBUG ===');
+    const loadData = async () => {
       try {
-        const parsedData = JSON.parse(savedData);
-        console.log('2. Parsed localStorage data:', parsedData);
-        console.log('3. fabricStates from localStorage:', parsedData.fabricStates);
-        console.log('4. Dispatching LOAD_DATA with payload:', parsedData);
-        dispatch({ type: 'LOAD_DATA', payload: parsedData });
-        console.log('5. LOAD_DATA dispatch completed');
+        const data = await apiService.getAllData();
+        console.log('1. Data loaded from API:', data);
+        console.log('2. fabricStates from API:', data.fabricStates);
+        console.log('3. Dispatching LOAD_DATA with payload:', data);
+        dispatch({ type: 'LOAD_DATA', payload: {
+          fabricStates: data.fabricStates,
+          fabricNotes: data.fabricNotes,
+          testCaseStates: data.testCaseStates,
+          subChecklists: data.subChecklists,
+          taskCategories: data.taskCategories as any,
+          currentFabric: data.currentFabric || undefined
+        } });
+        console.log('4. LOAD_DATA dispatch completed');
       } catch (error) {
-        console.error('Error loading saved data:', error);
-        console.log('6. Attempting to clear corrupted localStorage data');
-        localStorage.removeItem('aci-deployment-tracker-data');
+        console.error('Error loading data from API:', error);
+        console.log('5. Falling back to localStorage');
+        
+        const savedData = localStorage.getItem('aci-deployment-tracker-data');
+        if (savedData) {
+          try {
+            const parsedData = JSON.parse(savedData);
+            console.log('6. Parsed localStorage data:', parsedData);
+            dispatch({ type: 'LOAD_DATA', payload: parsedData });
+          } catch (parseError) {
+            console.error('Error parsing localStorage data:', parseError);
+          }
+        }
       }
-    } else {
-      console.log('2. No saved data found in localStorage');
-    }
+      
+      setHasLoadedFromStorage(true);
+      console.log('7. Initial load completed, enabling saves');
+    };
     
-    setHasLoadedFromStorage(true);
-    console.log('7. Initial load from localStorage completed, enabling saves');
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -305,28 +342,61 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   };
 
-  const updateTaskState = (taskId: string, checked: boolean, fabricId?: string) => {
+  const updateTaskState = async (taskId: string, checked: boolean, fabricId?: string) => {
     const targetFabricId = fabricId || state.currentFabric;
-    dispatch({
-      type: 'UPDATE_TASK_STATE',
-      payload: { taskId, checked, fabricId: targetFabricId }
-    });
+    
+    try {
+      await apiService.updateTaskState(targetFabricId, taskId, checked);
+      
+      dispatch({
+        type: 'UPDATE_TASK_STATE',
+        payload: { taskId, checked, fabricId: targetFabricId }
+      });
+    } catch (error) {
+      console.error('Error updating task state:', error);
+      dispatch({
+        type: 'UPDATE_TASK_STATE',
+        payload: { taskId, checked, fabricId: targetFabricId }
+      });
+    }
   };
 
-  const updateTaskNotes = (taskId: string, notes: string, fabricId?: string) => {
+  const updateTaskNotes = async (taskId: string, notes: string, fabricId?: string) => {
     const targetFabricId = fabricId || state.currentFabric;
-    dispatch({
-      type: 'UPDATE_TASK_NOTES',
-      payload: { taskId, notes, fabricId: targetFabricId }
-    });
+    
+    try {
+      await apiService.updateTaskNotes(targetFabricId, taskId, notes);
+      
+      dispatch({
+        type: 'UPDATE_TASK_NOTES',
+        payload: { taskId, notes, fabricId: targetFabricId }
+      });
+    } catch (error) {
+      console.error('Error updating task notes:', error);
+      dispatch({
+        type: 'UPDATE_TASK_NOTES',
+        payload: { taskId, notes, fabricId: targetFabricId }
+      });
+    }
   };
 
-  const updateTaskCategory = (taskId: string, category: TaskCategory, fabricId?: string) => {
+  const updateTaskCategory = async (taskId: string, category: TaskCategory, fabricId?: string) => {
     const targetFabricId = fabricId || state.currentFabric;
-    dispatch({
-      type: 'UPDATE_TASK_CATEGORY',
-      payload: { taskId, category, fabricId: targetFabricId }
-    });
+    
+    try {
+      await apiService.updateTaskCategory(targetFabricId, taskId, category);
+      
+      dispatch({
+        type: 'UPDATE_TASK_CATEGORY',
+        payload: { taskId, category, fabricId: targetFabricId }
+      });
+    } catch (error) {
+      console.error('Error updating task category:', error);
+      dispatch({
+        type: 'UPDATE_TASK_CATEGORY',
+        payload: { taskId, category, fabricId: targetFabricId }
+      });
+    }
   };
 
   const setCurrentFabric = (fabricId: string) => {

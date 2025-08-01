@@ -92,6 +92,14 @@ function AppContent() {
   };
 
   const handleSaveToLocal = async () => {
+    console.log('=== MANUAL SAVE TRIGGERED ===');
+    console.log('Current localStorage data:', localStorage.getItem('aci-deployment-tracker-data'));
+    console.log('Current app state:', {
+      fabricStates: state.fabricStates,
+      fabricNotes: state.fabricNotes,
+      taskCategories: state.taskCategories
+    });
+    
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' + 
                      new Date().toISOString().replace(/[:.]/g, '-').split('T')[1].split('.')[0];
     

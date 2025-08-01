@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
 import { AppState, Task, SubChecklist, FabricProgress, TaskCategory } from '../types';
 import { fabricsData } from '../data/fabricsData';
 import { sectionsData } from '../data/sectionsData';
@@ -115,7 +115,23 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
     
     case 'LOAD_DATA':
-      return { ...state, ...action.payload };
+      console.log('=== LOAD_DATA REDUCER DEBUG ===');
+      console.log('Current state before load:', state);
+      console.log('Payload to load:', action.payload);
+      
+      const validatedPayload = {
+        ...action.payload,
+        fabricStates: action.payload.fabricStates || {},
+        fabricNotes: action.payload.fabricNotes || {},
+        testCaseStates: action.payload.testCaseStates || {},
+        subChecklists: action.payload.subChecklists || {},
+        taskCategories: action.payload.taskCategories || {}
+      };
+      
+      const newState = { ...state, ...validatedPayload };
+      console.log('New state after load:', newState);
+      console.log('fabricStates in new state:', newState.fabricStates);
+      return newState;
     
     default:
       return state;
@@ -126,30 +142,86 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
+
+  const isLocalStorageAvailable = () => {
+    try {
+      const test = '__localStorage_test__';
+      localStorage.setItem(test, test);
+      localStorage.removeItem(test);
+      return true;
+    } catch (error) {
+      console.error('localStorage is not available:', error);
+      return false;
+    }
+  };
 
   useEffect(() => {
+    console.log('=== LOCALSTORAGE RESTORATION DEBUG ===');
     const savedData = localStorage.getItem('aci-deployment-tracker-data');
+    console.log('1. Raw localStorage data:', savedData);
+    
     if (savedData) {
       try {
         const parsedData = JSON.parse(savedData);
+        console.log('2. Parsed localStorage data:', parsedData);
+        console.log('3. fabricStates from localStorage:', parsedData.fabricStates);
+        console.log('4. Dispatching LOAD_DATA with payload:', parsedData);
         dispatch({ type: 'LOAD_DATA', payload: parsedData });
+        console.log('5. LOAD_DATA dispatch completed');
       } catch (error) {
         console.error('Error loading saved data:', error);
+        console.log('6. Attempting to clear corrupted localStorage data');
+        localStorage.removeItem('aci-deployment-tracker-data');
       }
+    } else {
+      console.log('2. No saved data found in localStorage');
     }
+    
+    setHasLoadedFromStorage(true);
+    console.log('7. Initial load from localStorage completed, enabling saves');
   }, []);
 
   useEffect(() => {
+    if (!hasLoadedFromStorage) {
+      console.log('=== SKIPPING SAVE - NOT YET LOADED FROM STORAGE ===');
+      return;
+    }
+    
+    if (!isLocalStorageAvailable()) {
+      console.warn('localStorage is not available, skipping save operation');
+      return;
+    }
+
     const dataToSave = {
       fabricStates: state.fabricStates,
       fabricNotes: state.fabricNotes,
       testCaseStates: state.testCaseStates,
       subChecklists: state.subChecklists,
       taskCategories: state.taskCategories,
-      currentFabric: state.currentFabric
+      currentFabric: state.currentFabric,
+      lastSaved: new Date().toISOString()
     };
-    localStorage.setItem('aci-deployment-tracker-data', JSON.stringify(dataToSave));
-  }, [state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.taskCategories, state.currentFabric]);
+    
+    console.log('=== SAVING TO LOCALSTORAGE DEBUG ===');
+    console.log('Data being saved:', dataToSave);
+    console.log('fabricStates being saved:', state.fabricStates);
+    
+    try {
+      const dataString = JSON.stringify(dataToSave);
+      localStorage.setItem('aci-deployment-tracker-data', dataString);
+      console.log('Data saved to localStorage successfully');
+      
+      const verification = localStorage.getItem('aci-deployment-tracker-data');
+      if (!verification) {
+        console.error('localStorage save verification failed - data not found after save');
+      } else {
+        console.log('localStorage save verified successfully');
+      }
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  }, [hasLoadedFromStorage, state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.taskCategories, state.currentFabric]);
 
   const getCurrentFabricTasks = (): Task[] => {
     const currentFabric = state.fabrics.find(f => f.id === state.currentFabric);

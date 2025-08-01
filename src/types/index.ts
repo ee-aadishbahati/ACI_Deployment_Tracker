@@ -4,6 +4,7 @@ export type Priority = 'High' | 'Medium' | 'Low';
 export type Risk = 'High' | 'Medium' | 'Low';
 export type ExecutionStatus = 'T.B.E.' | 'Pass' | 'Fail' | 'Partial' | 'Defer' | 'R.I.';
 export type ResourceRole = 'EE' | 'PS' | 'SP' | 'OK' | 'Vendor';
+export type TaskCategory = 'must-have' | 'should-have' | 'none';
 
 export interface Fabric {
   id: string;
@@ -45,6 +46,7 @@ export interface Task {
   fabricTypeSpecific?: FabricType[];
   dependencies?: string[];
   addedToSubChecklist?: boolean;
+  category?: TaskCategory;
 }
 
 export interface Subsection {
@@ -95,6 +97,7 @@ export interface AppState {
   fabricStates: { [fabricId: string]: { [taskId: string]: boolean } };
   fabricNotes: { [fabricId: string]: { [taskId: string]: string } };
   testCaseStates: { [fabricId: string]: { [tcId: string]: TestCase } };
+  taskCategories: { [fabricId: string]: { [taskId: string]: TaskCategory } };
 }
 
 export interface NotificationProps {

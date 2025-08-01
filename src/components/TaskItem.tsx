@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Task } from '../types';
+import { Task, TaskCategory } from '../types';
 import { useApp } from '../contexts/AppContext';
-import { ChevronDown, ChevronRight, User, Clock, AlertTriangle, CheckCircle, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, User, Clock, AlertTriangle, CheckCircle, Plus, Star } from 'lucide-react';
 
 interface TaskItemProps {
   task: Task;
@@ -10,7 +10,7 @@ interface TaskItemProps {
 }
 
 export function TaskItem({ task }: TaskItemProps) {
-  const { updateTaskState, updateTaskNotes } = useApp();
+  const { updateTaskState, updateTaskNotes, updateTaskCategory } = useApp();
   const [showDetails, setShowDetails] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
 
@@ -20,6 +20,10 @@ export function TaskItem({ task }: TaskItemProps) {
 
   const handleNotesChange = (notes: string) => {
     updateTaskNotes(task.id, notes);
+  };
+
+  const handleCategoryChange = (category: TaskCategory) => {
+    updateTaskCategory(task.id, category);
   };
 
   const getPriorityColor = (priority?: string) => {
@@ -40,6 +44,22 @@ export function TaskItem({ task }: TaskItemProps) {
       case 'Defer': return 'text-purple-600 bg-purple-50';
       case 'R.I.': return 'text-orange-600 bg-orange-50';
       default: return 'text-gray-600 bg-gray-50';
+    }
+  };
+
+  const getCategoryColor = (category?: TaskCategory) => {
+    switch (category) {
+      case 'must-have': return 'text-red-600 bg-red-50 border-red-200';
+      case 'should-have': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
+
+  const getCategoryIcon = (category?: TaskCategory) => {
+    switch (category) {
+      case 'must-have': return <Star className="h-3 w-3 fill-current" />;
+      case 'should-have': return <AlertTriangle className="h-3 w-3" />;
+      default: return null;
     }
   };
 
@@ -64,6 +84,13 @@ export function TaskItem({ task }: TaskItemProps) {
             </label>
             
             <div className="flex items-center space-x-2 ml-4">
+              {task.category && task.category !== 'none' && (
+                <div className={`flex items-center space-x-1 text-xs px-2 py-1 rounded border ${getCategoryColor(task.category)}`}>
+                  {getCategoryIcon(task.category)}
+                  <span className="capitalize">{task.category.replace('-', ' ')}</span>
+                </div>
+              )}
+              
               {task.testCase && (
                 <button
                   onClick={() => setShowDetails(!showDetails)}
@@ -85,6 +112,17 @@ export function TaskItem({ task }: TaskItemProps) {
                   Fabric
                 </span>
               )}
+              
+              <select
+                value={task.category || 'none'}
+                onChange={(e) => handleCategoryChange(e.target.value as TaskCategory)}
+                className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                title="Set task priority category"
+              >
+                <option value="none">No Priority</option>
+                <option value="must-have">Must Have</option>
+                <option value="should-have">Should Have</option>
+              </select>
               
               <button
                 onClick={() => setShowNotes(!showNotes)}

@@ -7,6 +7,10 @@ on:
         description: 'Deployment message'
         required: false
         default: 'Manual deployment'
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 permissions:
   contents: read

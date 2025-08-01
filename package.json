@@ -1,6 +1,7 @@
 {
   "name": "aci-deployment-tracker",
   "version": "1.0.0",
+  "type": "module",
   "description": "Advanced ACI Deployment Tracker for Multi-Site Multi-Fabric Environments",
   "main": "electron/main.js",
   "homepage": "./",

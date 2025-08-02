@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { logger } from '../utils/logger';
 
 interface WebSocketMessage {
   type: string;
@@ -31,7 +32,7 @@ export const useWebSocket = ({
       wsRef.current = new WebSocket(wsUrl);
 
       wsRef.current.onopen = () => {
-        console.log('WebSocket connected');
+        logger.info('WebSocket connected');
         setIsConnected(true);
       };
 
@@ -51,12 +52,12 @@ export const useWebSocket = ({
               break;
           }
         } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+          logger.error('Error parsing WebSocket message', error);
         }
       };
 
       wsRef.current.onclose = () => {
-        console.log('WebSocket disconnected');
+        logger.info('WebSocket disconnected');
         setIsConnected(false);
         
         reconnectTimeoutRef.current = setTimeout(() => {
@@ -65,10 +66,10 @@ export const useWebSocket = ({
       };
 
       wsRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        logger.error('WebSocket error', error);
       };
     } catch (error) {
-      console.error('Failed to connect WebSocket:', error);
+      logger.error('Failed to connect WebSocket', error);
     }
   };
 

@@ -4,6 +4,7 @@ import { fabricsData } from '../data/fabricsData';
 import { sectionsData } from '../data/sectionsData';
 import { apiService } from '../services/api';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { logger } from '../utils/logger';
 
 interface AppContextType {
   state: AppState;
@@ -117,9 +118,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
     
     case 'LOAD_DATA':
-      console.log('=== LOAD_DATA REDUCER DEBUG ===');
-      console.log('Current state before load:', state);
-      console.log('Payload to load:', action.payload);
+      logger.debug('Loading data from API/localStorage', action.payload);
       
       const validatedPayload = {
         ...action.payload,
@@ -131,8 +130,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
       
       const newState = { ...state, ...validatedPayload };
-      console.log('New state after load:', newState);
-      console.log('fabricStates in new state:', newState.fabricStates);
+      logger.debug('Data loaded successfully', { fabricCount: Object.keys(newState.fabricStates).length });
       return newState;
     
     default:
@@ -174,19 +172,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem(test);
       return true;
     } catch (error) {
-      console.error('localStorage is not available:', error);
+      logger.error('localStorage is not available', error);
       return false;
     }
   };
 
   useEffect(() => {
-    console.log('=== API DATA RESTORATION DEBUG ===');
     const loadData = async () => {
       try {
         const data = await apiService.getAllData();
-        console.log('1. Data loaded from API:', data);
-        console.log('2. fabricStates from API:', data.fabricStates);
-        console.log('3. Dispatching LOAD_DATA with payload:', data);
+        logger.info('Data loaded from API successfully');
         dispatch({ type: 'LOAD_DATA', payload: {
           fabricStates: data.fabricStates,
           fabricNotes: data.fabricNotes,
@@ -195,25 +190,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           taskCategories: data.taskCategories as any,
           currentFabric: data.currentFabric || undefined
         } });
-        console.log('4. LOAD_DATA dispatch completed');
       } catch (error) {
-        console.error('Error loading data from API:', error);
-        console.log('5. Falling back to localStorage');
+        logger.warn('API unavailable, falling back to localStorage', error);
         
         const savedData = localStorage.getItem('aci-deployment-tracker-data');
         if (savedData) {
           try {
             const parsedData = JSON.parse(savedData);
-            console.log('6. Parsed localStorage data:', parsedData);
+            logger.info('Data loaded from localStorage successfully');
             dispatch({ type: 'LOAD_DATA', payload: parsedData });
           } catch (parseError) {
-            console.error('Error parsing localStorage data:', parseError);
+            logger.error('Error parsing localStorage data', parseError);
           }
         }
       }
       
       setHasLoadedFromStorage(true);
-      console.log('7. Initial load completed, enabling saves');
+      logger.debug('Initial data load completed');
     };
     
     loadData();
@@ -221,12 +214,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!hasLoadedFromStorage) {
-      console.log('=== SKIPPING SAVE - NOT YET LOADED FROM STORAGE ===');
       return;
     }
     
     if (!isLocalStorageAvailable()) {
-      console.warn('localStorage is not available, skipping save operation');
+      logger.warn('localStorage is not available, skipping save operation');
       return;
     }
 
@@ -240,23 +232,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       lastSaved: new Date().toISOString()
     };
     
-    console.log('=== SAVING TO LOCALSTORAGE DEBUG ===');
-    console.log('Data being saved:', dataToSave);
-    console.log('fabricStates being saved:', state.fabricStates);
-    
     try {
       const dataString = JSON.stringify(dataToSave);
       localStorage.setItem('aci-deployment-tracker-data', dataString);
-      console.log('Data saved to localStorage successfully');
+      logger.debug('Data saved to localStorage successfully');
       
       const verification = localStorage.getItem('aci-deployment-tracker-data');
       if (!verification) {
-        console.error('localStorage save verification failed - data not found after save');
-      } else {
-        console.log('localStorage save verified successfully');
+        logger.error('localStorage save verification failed');
       }
     } catch (error) {
-      console.error('Error saving to localStorage:', error);
+      logger.error('Error saving to localStorage', error);
     }
   }, [hasLoadedFromStorage, state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.taskCategories, state.currentFabric]);
 
@@ -353,7 +339,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         payload: { taskId, checked, fabricId: targetFabricId }
       });
     } catch (error) {
-      console.error('Error updating task state:', error);
+      logger.error('Error updating task state via API, updating locally', error);
       dispatch({
         type: 'UPDATE_TASK_STATE',
         payload: { taskId, checked, fabricId: targetFabricId }
@@ -372,7 +358,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         payload: { taskId, notes, fabricId: targetFabricId }
       });
     } catch (error) {
-      console.error('Error updating task notes:', error);
+      logger.error('Error updating task notes via API, updating locally', error);
       dispatch({
         type: 'UPDATE_TASK_NOTES',
         payload: { taskId, notes, fabricId: targetFabricId }
@@ -391,7 +377,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         payload: { taskId, category, fabricId: targetFabricId }
       });
     } catch (error) {
-      console.error('Error updating task category:', error);
+      logger.error('Error updating task category via API, updating locally', error);
       dispatch({
         type: 'UPDATE_TASK_CATEGORY',
         payload: { taskId, category, fabricId: targetFabricId }

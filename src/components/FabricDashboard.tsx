@@ -1,5 +1,7 @@
 import { useApp } from '../contexts/AppContext';
 import { BarChart3, Users, AlertTriangle, CheckCircle, Target } from 'lucide-react';
+import { getProgressColor } from '../utils/colorUtils';
+import { calculateProgress } from '../utils/progressUtils';
 
 export function FabricDashboard() {
   const { state, getFabricProgress } = useApp();
@@ -21,18 +23,12 @@ export function FabricDashboard() {
   const overallCompletion = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
   const testCaseCompletion = totalTestCases > 0 ? Math.round((totalTestCasesCompleted / totalTestCases) * 100) : 0;
 
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 90) return 'text-green-600 bg-green-50';
-    if (percentage >= 70) return 'text-yellow-600 bg-yellow-50';
-    if (percentage >= 40) return 'text-orange-600 bg-orange-50';
-    return 'text-red-600 bg-red-50';
-  };
 
   const getSiteProgress = (site: string) => {
     const siteProgress = allProgress.filter(item => item.fabric.site === site);
     const siteTasks = siteProgress.reduce((sum, item) => sum + item.progress.totalTasks, 0);
     const siteCompleted = siteProgress.reduce((sum, item) => sum + item.progress.completedTasks, 0);
-    return siteTasks > 0 ? Math.round((siteCompleted / siteTasks) * 100) : 0;
+    return calculateProgress(siteCompleted, siteTasks).percentage;
   };
 
   return (
@@ -116,8 +112,7 @@ export function FabricDashboard() {
                 
                 <div className="space-y-2">
                   {siteFabrics.map(({ fabric, progress }) => {
-                    const fabricCompletion = progress.totalTasks > 0 ? 
-                      Math.round((progress.completedTasks / progress.totalTasks) * 100) : 0;
+                    const fabricCompletion = calculateProgress(progress.completedTasks, progress.totalTasks).percentage;
                     
                     return (
                       <div key={fabric.id} className="flex items-center justify-between text-sm">
@@ -168,10 +163,8 @@ export function FabricDashboard() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {allProgress.map(({ fabric, progress }) => {
-                const completion = progress.totalTasks > 0 ? 
-                  Math.round((progress.completedTasks / progress.totalTasks) * 100) : 0;
-                const testCompletion = progress.totalTestCases > 0 ? 
-                  Math.round((progress.completedTestCases / progress.totalTestCases) * 100) : 0;
+                const completion = calculateProgress(progress.completedTasks, progress.totalTasks).percentage;
+                const testCompletion = calculateProgress(progress.completedTestCases, progress.totalTestCases).percentage;
                 
                 return (
                   <tr key={fabric.id} className="hover:bg-gray-50">

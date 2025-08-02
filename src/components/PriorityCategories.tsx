@@ -2,6 +2,7 @@ import React from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Task, TaskCategory } from '../types';
 import { Star, AlertTriangle, CheckCircle2, Circle } from 'lucide-react';
+import { calculateTaskProgress } from '../utils/progressUtils';
 
 export function PriorityCategories() {
   const { state, updateTaskCategory } = useApp();
@@ -41,10 +42,7 @@ export function PriorityCategories() {
   };
 
   const getCategoryStats = (tasks: Task[]) => {
-    const total = tasks.length;
-    const completed = tasks.filter(task => task.checked).length;
-    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return { total, completed, percentage };
+    return calculateTaskProgress(tasks);
   };
 
   const mustHaveStats = getCategoryStats(mustHaveTasks);

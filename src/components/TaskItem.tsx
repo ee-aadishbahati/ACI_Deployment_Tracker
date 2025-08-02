@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Task, TaskCategory } from '../types';
 import { useApp } from '../contexts/AppContext';
 import { ChevronDown, ChevronRight, User, Clock, AlertTriangle, CheckCircle, Plus, Star } from 'lucide-react';
+import { getPriorityColor, getStatusColor, getCategoryColor } from '../utils/colorUtils';
 
 interface TaskItemProps {
   task: Task;
@@ -26,34 +27,6 @@ export function TaskItem({ task }: TaskItemProps) {
     updateTaskCategory(task.id, category);
   };
 
-  const getPriorityColor = (priority?: string) => {
-    switch (priority) {
-      case 'High': return 'text-red-600 bg-red-50';
-      case 'Medium': return 'text-yellow-600 bg-yellow-50';
-      case 'Low': return 'text-green-600 bg-green-50';
-      default: return 'text-gray-600 bg-gray-50';
-    }
-  };
-
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'Pass': return 'text-green-600 bg-green-50';
-      case 'Fail': return 'text-red-600 bg-red-50';
-      case 'Partial': return 'text-yellow-600 bg-yellow-50';
-      case 'T.B.E.': return 'text-blue-600 bg-blue-50';
-      case 'Defer': return 'text-purple-600 bg-purple-50';
-      case 'R.I.': return 'text-orange-600 bg-orange-50';
-      default: return 'text-gray-600 bg-gray-50';
-    }
-  };
-
-  const getCategoryColor = (category?: TaskCategory) => {
-    switch (category) {
-      case 'must-have': return 'text-red-600 bg-red-50 border-red-200';
-      case 'should-have': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
-  };
 
   const getCategoryIcon = (category?: TaskCategory) => {
     switch (category) {
@@ -85,7 +58,7 @@ export function TaskItem({ task }: TaskItemProps) {
             
             <div className="flex items-center space-x-2 ml-4">
               {task.category && task.category !== 'none' && (
-                <div className={`flex items-center space-x-1 text-xs px-2 py-1 rounded border ${getCategoryColor(task.category)}`}>
+                <div className={`flex items-center space-x-1 text-xs px-2 py-1 rounded border ${getCategoryColor(task.category, true)}`}>
                   {getCategoryIcon(task.category)}
                   <span className="capitalize">{task.category.replace('-', ' ')}</span>
                 </div>

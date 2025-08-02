@@ -8,6 +8,8 @@ import { SubChecklistManager } from './components/SubChecklistManager';
 import { PriorityCategories } from './components/PriorityCategories';
 import { useApp } from './contexts/AppContext';
 import { apiService } from './services/api';
+import { useFileOperations } from './hooks/useFileOperations';
+import { logger } from './utils/logger';
 import { 
   BarChart3, 
   CheckSquare, 
@@ -23,6 +25,7 @@ import {
 function AppContent() {
   const { state } = useApp();
   const [activeView, setActiveView] = useState<'dashboard' | 'tasks' | 'priorities'>('dashboard');
+  const { downloadFile, uploadFile, readFileAsText } = useFileOperations();
   
   const currentFabric = state.fabrics.find(f => f.id === state.currentFabric);
 
@@ -39,63 +42,43 @@ function AppContent() {
         version: '1.0.0'
       };
 
-      const dataStr = JSON.stringify(exportData, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `aci-deployment-tracker-export-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      URL.revokeObjectURL(url);
+      const filename = `aci-deployment-tracker-export-${new Date().toISOString().split('T')[0]}.json`;
+      downloadFile(exportData, filename);
+      logger.info('Data exported successfully');
     } catch (error) {
-      console.error('Error exporting data:', error);
+      logger.error('Error exporting data', error);
       alert('Failed to export data. Please try again.');
     }
   };
 
   const handleImportData = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const importedData = JSON.parse(e.target?.result as string);
+    uploadFile(async (file) => {
+      try {
+        const fileContent = await readFileAsText(file);
+        const importedData = JSON.parse(fileContent);
+        
+        if (importedData.fabricStates !== undefined && importedData.fabricNotes !== undefined) {
+          const dataToImport = {
+            fabricStates: importedData.fabricStates || {},
+            fabricNotes: importedData.fabricNotes || {},
+            testCaseStates: importedData.testCaseStates || {},
+            subChecklists: importedData.subChecklists || {},
+            taskCategories: importedData.taskCategories || {},
+            currentFabric: importedData.currentFabric || null,
+            lastSaved: null
+          };
           
-          if (importedData.fabricStates !== undefined && importedData.fabricNotes !== undefined) {
-            const dataToImport = {
-              fabricStates: importedData.fabricStates || {},
-              fabricNotes: importedData.fabricNotes || {},
-              testCaseStates: importedData.testCaseStates || {},
-              subChecklists: importedData.subChecklists || {},
-              taskCategories: importedData.taskCategories || {},
-              currentFabric: importedData.currentFabric || null,
-              lastSaved: null
-            };
-            
-            await apiService.updateAllData(dataToImport);
-            window.location.reload(); // Reload to apply imported data
-          } else {
-            alert('Invalid data format. Please select a valid export file.');
-          }
-        } catch (error) {
-          console.error('Error importing data:', error);
-          alert('Error reading file. Please select a valid JSON export file.');
+          await apiService.updateAllData(dataToImport);
+          logger.info('Data imported successfully');
+          window.location.reload();
+        } else {
+          alert('Invalid data format. Please select a valid export file.');
         }
-      };
-      reader.readAsText(file);
-    };
-    
-    input.click();
+      } catch (error) {
+        logger.error('Error importing data', error);
+        alert('Error reading file. Please select a valid JSON export file.');
+      }
+    });
   };
 
   const handleResetAll = async () => {
@@ -114,21 +97,21 @@ function AppContent() {
         await apiService.updateAllData(resetData);
         window.location.reload();
       } catch (error) {
-        console.error('Error resetting data:', error);
+        logger.error('Error resetting data', error);
         alert('Failed to reset data. Please try again.');
       }
     }
   };
 
   const handleSaveToLocal = async () => {
-    console.log('=== MANUAL SAVE TRIGGERED ===');
+    logger.info('Manual save triggered');
     
     try {
       const data = await apiService.getAllData();
       await apiService.updateAllData(data);
       
-      console.log('Current API data:', data);
-      console.log('Current app state:', {
+      logger.debug('Current API data', data);
+      logger.debug('Current app state', {
         fabricStates: state.fabricStates,
         fabricNotes: state.fabricNotes,
         taskCategories: state.taskCategories
@@ -159,39 +142,31 @@ function AppContent() {
           alert(`Error saving file: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       } else {
-      const dataStr = JSON.stringify(exportData, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `ACI-Deployment-Progress-${timestamp}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      URL.revokeObjectURL(url);
-      
-      const notification = document.createElement('div');
-      notification.innerHTML = `
-        <div style="position: fixed; top: 20px; right: 20px; background: #10B981; color: white; 
-                    padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
-                    z-index: 1000; font-family: system-ui; font-size: 14px; max-width: 300px;">
-          <div style="font-weight: 600; margin-bottom: 4px;">✅ Progress Saved!</div>
-          <div style="font-size: 12px; opacity: 0.9;">File: ACI-Deployment-Progress-${timestamp}.json</div>
-          <div style="font-size: 12px; opacity: 0.9;">Check your Downloads folder</div>
-        </div>
-      `;
-      document.body.appendChild(notification);
-      
-      setTimeout(() => {
-        if (notification.parentNode) {
-          notification.parentNode.removeChild(notification);
-        }
-      }, 4000);
+        const filename = `ACI-Deployment-Progress-${timestamp}.json`;
+        downloadFile(exportData, filename);
+
+        const notification = document.createElement('div');
+        notification.innerHTML = `
+          <div style="position: fixed; top: 20px; right: 20px; background: #10B981; color: white; 
+                      padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+                      z-index: 1000; font-family: system-ui; font-size: 14px; max-width: 300px;">
+            <div style="font-weight: 600; margin-bottom: 4px;">✅ Progress Saved!</div>
+            <div style="font-size: 12px; opacity: 0.9;">File: ${filename}</div>
+            <div style="font-size: 12px; opacity: 0.9;">Check your Downloads folder</div>
+          </div>
+        `;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 4000);
       }
+      
+      logger.info('Manual save completed successfully');
     } catch (error) {
-      console.error('Error saving to local:', error);
+      logger.error('Error saving to local', error);
       alert('Failed to save progress. Please try again.');
     }
   };

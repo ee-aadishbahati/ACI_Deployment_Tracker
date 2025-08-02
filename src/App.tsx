@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { AppProvider } from './contexts/AppContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { FabricSelector } from './components/FabricSelector';
 import { FabricDashboard } from './components/FabricDashboard';
 import { TaskSection } from './components/TaskSection';
 import { SearchFilter } from './components/SearchFilter';
 import { SubChecklistManager } from './components/SubChecklistManager';
 import { PriorityCategories } from './components/PriorityCategories';
+import { AutoSaveStatus } from './components/AutoSaveStatus';
+import { BulkOperations } from './components/BulkOperations';
+import { ThemeToggle } from './components/ThemeToggle';
 import { useApp } from './contexts/AppContext';
 import { apiService } from './services/api';
 import { 
@@ -17,12 +21,15 @@ import {
   RotateCcw,
   Network,
   Save,
-  Star
+  Star,
+  Users
 } from 'lucide-react';
 
 function AppContent() {
   const { state } = useApp();
   const [activeView, setActiveView] = useState<'dashboard' | 'tasks' | 'priorities'>('dashboard');
+  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+  const [bulkMode, setBulkMode] = useState(false);
   
   const currentFabric = state.fabrics.find(f => f.id === state.currentFabric);
 
@@ -196,20 +203,35 @@ function AppContent() {
     }
   };
 
+  const handleTaskSelect = (taskId: string, selected: boolean) => {
+    if (selected) {
+      setSelectedTasks(prev => [...prev, taskId]);
+    } else {
+      setSelectedTasks(prev => prev.filter(id => id !== taskId));
+    }
+  };
+
+  const handleBulkModeToggle = () => {
+    setBulkMode(!bulkMode);
+    if (bulkMode) {
+      setSelectedTasks([]);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <Network className="h-8 w-8 text-blue-600" />
-                <h1 className="text-xl font-bold text-gray-900">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   ACI Deployment Tracker
                 </h1>
               </div>
-              <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+              <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
                 Multi-Site Multi-Fabric
               </span>
             </div>
@@ -251,7 +273,36 @@ function AppContent() {
                 </button>
               </div>
               
-              <div className="h-6 w-px bg-gray-300" />
+              <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
+              
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleBulkModeToggle}
+                  className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    bulkMode
+                      ? 'bg-purple-600 text-white'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                  title="Toggle bulk operations mode"
+                >
+                  <Users size={16} />
+                  <span>Bulk</span>
+                </button>
+              </div>
+              
+              <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
+              
+              <div className="flex items-center space-x-2">
+                <AutoSaveStatus />
+              </div>
+              
+              <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
+              
+              <div className="flex items-center space-x-2">
+                <ThemeToggle />
+              </div>
+              
+              <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
               
               <div className="flex items-center space-x-2">
                 <button
@@ -264,28 +315,28 @@ function AppContent() {
                 </button>
                 <button
                   onClick={handlePrint}
-                  className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100"
+                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
                   title="Print"
                 >
                   <Printer size={16} />
                 </button>
                 <button
                   onClick={handleExportAllData}
-                  className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100"
+                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
                   title="Export All Data"
                 >
                   <Download size={16} />
                 </button>
                 <button
                   onClick={handleImportData}
-                  className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100"
+                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
                   title="Import Data"
                 >
                   <Upload size={16} />
                 </button>
                 <button
                   onClick={handleResetAll}
-                  className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100"
+                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
                   title="Reset All Progress"
                 >
                   <RotateCcw size={16} />
@@ -308,16 +359,16 @@ function AppContent() {
         ) : (
           <div className="space-y-6">
             {/* Current Fabric Info */}
-            <div className="bg-white shadow-lg rounded-lg p-4">
+            <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-800">
+                  <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
                     Current Fabric: {currentFabric?.name}
                   </h2>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     {currentFabric?.description}
                     {currentFabric?.site === 'Tertiary' && (
-                      <span className="ml-2 text-blue-600 font-medium">
+                      <span className="ml-2 text-blue-600 dark:text-blue-400 font-medium">
                         • NDO Management Site
                       </span>
                     )}
@@ -335,17 +386,32 @@ function AppContent() {
             {/* Task Sections */}
             <div className="space-y-6">
               {state.sections.map(section => (
-                <TaskSection key={section.id} section={section} />
+                <TaskSection 
+                  key={section.id} 
+                  section={section}
+                  selectedTasks={selectedTasks}
+                  onTaskSelect={handleTaskSelect}
+                  bulkMode={bulkMode}
+                />
               ))}
             </div>
           </div>
         )}
       </main>
 
+      {/* Bulk Operations */}
+      {bulkMode && (
+        <BulkOperations
+          selectedTasks={selectedTasks}
+          onSelectionChange={setSelectedTasks}
+          onClose={() => setBulkMode(false)}
+        />
+      )}
+
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-12">
+      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between text-sm text-gray-600">
+          <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
             <div>
               <span>ACI Deployment Tracker v1.0.0</span>
               <span className="mx-2">•</span>
@@ -363,9 +429,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ThemeProvider>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ThemeProvider>
   );
 }
 

@@ -128,3 +128,52 @@ input[type="checkbox"]:checked {
     opacity: 1;
   }
 }
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tw-bg-opacity: 1;
+    background-color: rgb(17 24 39 / var(--tw-bg-opacity));
+    color: rgb(243 244 246 / var(--tw-text-opacity));
+  }
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+/* Custom dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Dark mode checkbox styles */
+.dark input[type="checkbox"]:checked {
+  background-color: #0D6EFD;
+  border-color: #0D6EFD;
+}
+
+/* Dark mode notification styles */
+.dark .notification.success {
+  background-color: #059669;
+}
+
+.dark .notification.error {
+  background-color: #dc2626;
+}
+
+.dark .notification.warning {
+  background-color: #d97706;
+}
+
+.dark .notification.info {
+  background-color: #2563eb;
+}

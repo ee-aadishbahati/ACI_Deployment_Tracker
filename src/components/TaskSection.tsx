@@ -5,9 +5,17 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface TaskSectionProps {
   section: Section;
+  selectedTasks?: string[];
+  onTaskSelect?: (taskId: string, selected: boolean) => void;
+  bulkMode?: boolean;
 }
 
-export function TaskSection({ section }: TaskSectionProps) {
+export function TaskSection({ 
+  section, 
+  selectedTasks = [], 
+  onTaskSelect, 
+  bulkMode = false 
+}: TaskSectionProps) {
   const { state, dispatch } = useApp();
   const currentFabric = state.fabrics.find(f => f.id === state.currentFabric);
   
@@ -60,7 +68,7 @@ export function TaskSection({ section }: TaskSectionProps) {
   }
 
   return (
-    <div className="bg-white shadow-lg rounded-lg mb-6 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg mb-6 overflow-hidden border border-gray-200 dark:border-gray-700">
       <div
         className="bg-blue-600 text-white p-4 cursor-pointer hover:bg-blue-700 transition-colors"
         onClick={toggleSection}
@@ -115,12 +123,12 @@ export function TaskSection({ section }: TaskSectionProps) {
             return (
               <div key={subsectionIndex} className="mb-8 last:mb-0">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-gray-800">
+                  <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200">
                     {subsection.title}
                   </h3>
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
                     <span>{subsectionCompleted}/{subsectionTotal}</span>
-                    <div className="w-16 bg-gray-200 rounded-full h-1.5">
+                    <div className="w-16 bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
                       <div
                         className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
                         style={{ width: `${subsectionPercentage}%` }}
@@ -136,6 +144,9 @@ export function TaskSection({ section }: TaskSectionProps) {
                       task={task}
                       sectionId={section.id}
                       subsectionTitle={subsection.title}
+                      selected={selectedTasks.includes(task.id)}
+                      onSelect={onTaskSelect}
+                      bulkMode={bulkMode}
                     />
                   ))}
                 </div>

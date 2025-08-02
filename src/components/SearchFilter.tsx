@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Search, X, Filter, ChevronDown } from 'lucide-react';
 

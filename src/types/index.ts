@@ -153,6 +153,7 @@ export interface AppContextType {
   updateTaskState: (taskId: string, checked: boolean, fabricId?: string) => Promise<void>;
   updateTaskNotes: (taskId: string, notes: string, fabricId?: string) => Promise<void>;
   updateTaskCategory: (taskId: string, category: TaskCategory, fabricId?: string) => Promise<void>;
+  updateTaskCategoryAcrossSelectedFabrics: (taskId: string, category: TaskCategory, fabricIds: string[]) => Promise<void>;
   updateTaskCategoryAcrossAllFabrics: (taskId: string, category: TaskCategory) => Promise<void>;
   setCurrentFabric: (fabricId: string) => void;
   setSearchQuery: (query: string) => void;

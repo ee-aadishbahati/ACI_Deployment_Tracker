@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { TaskCategory } from '../types';
-import { CheckSquare, Square, Star, AlertTriangle, Trash2, X } from 'lucide-react';
+import { TaskCategory, Fabric } from '../types';
+import { CheckSquare, Square, Star, AlertTriangle, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface BulkOperationsProps {
   selectedTasks: string[];
@@ -10,9 +10,10 @@ interface BulkOperationsProps {
 }
 
 export function BulkOperations({ selectedTasks, onSelectionChange, onClose }: BulkOperationsProps) {
-  const { updateTaskState, updateTaskCategory, updateTaskCategoryAcrossAllFabrics, getCurrentFabricTasks } = useApp();
+  const { updateTaskState, updateTaskCategory, updateTaskCategoryAcrossSelectedFabrics, getCurrentFabricTasks, state, getFabricProgress } = useApp();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [applyToAllDatacenters, setApplyToAllDatacenters] = useState(false);
+  const [selectedFabrics, setSelectedFabrics] = useState<string[]>([]);
+  const [showFabricSelection, setShowFabricSelection] = useState(false);
 
   const allTasks = getCurrentFabricTasks();
 
@@ -35,9 +36,12 @@ export function BulkOperations({ selectedTasks, onSelectionChange, onClose }: Bu
   };
 
   const handleBulkCategory = async (category: TaskCategory) => {
-    if (applyToAllDatacenters) {
+    if (selectedFabrics.length > 0) {
       const categoryLabel = category === 'must-have' ? 'Must Have' : category === 'should-have' ? 'Should Have' : 'Remove Priority';
-      const confirmMessage = `This will apply the "${categoryLabel}" category to ${selectedTasks.length} task(s) across ALL applicable datacenters. This action cannot be undone. Continue?`;
+      const fabricNames = selectedFabrics.map(fabricId => 
+        state.fabrics.find(f => f.id === fabricId)?.name || fabricId
+      ).join(', ');
+      const confirmMessage = `This will apply the "${categoryLabel}" category to ${selectedTasks.length} task(s) across the following fabrics: ${fabricNames}. This action cannot be undone. Continue?`;
       
       if (!window.confirm(confirmMessage)) {
         return;
@@ -46,9 +50,9 @@ export function BulkOperations({ selectedTasks, onSelectionChange, onClose }: Bu
 
     setIsProcessing(true);
     try {
-      if (applyToAllDatacenters) {
+      if (selectedFabrics.length > 0) {
         await Promise.all(
-          selectedTasks.map(taskId => updateTaskCategoryAcrossAllFabrics(taskId, category))
+          selectedTasks.map(taskId => updateTaskCategoryAcrossSelectedFabrics(taskId, category, selectedFabrics))
         );
       } else {
         await Promise.all(
@@ -71,6 +75,40 @@ export function BulkOperations({ selectedTasks, onSelectionChange, onClose }: Bu
   const handleDeselectAll = () => {
     onSelectionChange([]);
   };
+
+  const handleFabricToggle = (fabricId: string) => {
+    setSelectedFabrics(prev => 
+      prev.includes(fabricId) 
+        ? prev.filter(id => id !== fabricId)
+        : [...prev, fabricId]
+    );
+  };
+
+  const handleSelectAllFabrics = () => {
+    setSelectedFabrics(state.fabrics.map(f => f.id));
+  };
+
+  const handleDeselectAllFabrics = () => {
+    setSelectedFabrics([]);
+  };
+
+  const getFabricStatusColor = (fabricId: string) => {
+    const progress = getFabricProgress(fabricId);
+    const completionRate = progress.totalTasks > 0 ? progress.completedTasks / progress.totalTasks : 0;
+    
+    if (completionRate === 1) return 'bg-green-500';
+    if (completionRate >= 0.7) return 'bg-yellow-500';
+    if (completionRate >= 0.3) return 'bg-orange-500';
+    return 'bg-red-500';
+  };
+
+  const groupedFabrics = state.fabrics.reduce((acc, fabric) => {
+    if (!acc[fabric.site]) {
+      acc[fabric.site] = [];
+    }
+    acc[fabric.site].push(fabric);
+    return acc;
+  }, {} as Record<string, Fabric[]>);
 
   if (selectedTasks.length === 0) {
     console.log('BulkOperations returning null due to empty selectedTasks');
@@ -110,16 +148,81 @@ export function BulkOperations({ selectedTasks, onSelectionChange, onClose }: Bu
         </button>
       </div>
 
-      <div className="flex items-center justify-between mb-3">
-        <label className="flex items-center space-x-2 text-sm">
-          <input
-            type="checkbox"
-            checked={applyToAllDatacenters}
-            onChange={(e) => setApplyToAllDatacenters(e.target.checked)}
-            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-          />
-          <span className="text-gray-700 dark:text-gray-300">Apply to all applicable datacenters</span>
-        </label>
+      <div className="mb-3">
+        <button
+          onClick={() => setShowFabricSelection(!showFabricSelection)}
+          className="flex items-center justify-between w-full text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+        >
+          <span>
+            Apply to specific fabrics {selectedFabrics.length > 0 && `(${selectedFabrics.length} selected)`}
+          </span>
+          {showFabricSelection ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+        
+        {showFabricSelection && (
+          <div className="mt-2 p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Select Fabrics:</span>
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleSelectAllFabrics}
+                  className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                >
+                  Select All
+                </button>
+                <span className="text-gray-300">|</span>
+                <button
+                  onClick={handleDeselectAllFabrics}
+                  className="text-xs text-gray-600 hover:text-gray-800 dark:text-gray-400"
+                >
+                  Deselect All
+                </button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-2">
+              {Object.entries(groupedFabrics).map(([site, fabrics]) => (
+                <div key={site} className="space-y-1">
+                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    {site} Data Center
+                  </div>
+                  {fabrics.map(fabric => {
+                    const progress = getFabricProgress(fabric.id);
+                    const isSelected = selectedFabrics.includes(fabric.id);
+                    
+                    return (
+                      <label
+                        key={fabric.id}
+                        className="flex items-center space-x-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleFabricToggle(fabric.id)}
+                          className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <div className="flex items-center justify-between flex-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-xs text-gray-700 dark:text-gray-300">
+                              {fabric.type} Fabric
+                            </span>
+                            <div
+                              className={`w-2 h-2 rounded-full ${getFabricStatusColor(fabric.id)}`}
+                              title={`${Math.round((progress.completedTasks / progress.totalTasks) * 100)}% complete`}
+                            />
+                          </div>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {progress.completedTasks}/{progress.totalTasks}
+                          </span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center space-x-2">

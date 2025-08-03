@@ -1,35 +1,10 @@
 import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
-import { AppState, Task, SubChecklist, FabricProgress, TaskCategory } from '../types';
+import { AppState, Task, SubChecklist, FabricProgress, TaskCategory, DependencyStatus, AppContextType, AppAction } from '../types';
 import { fabricsData } from '../data/fabricsData';
 import { sectionsData } from '../data/sectionsData';
 import { apiService } from '../services/api';
 import { useWebSocket } from '../hooks/useWebSocket';
 
-interface AppContextType {
-  state: AppState;
-  dispatch: React.Dispatch<AppAction>;
-  getCurrentFabricTasks: () => Task[];
-  getFabricProgress: (fabricId: string) => FabricProgress;
-  updateTaskState: (taskId: string, checked: boolean, fabricId?: string) => void;
-  updateTaskNotes: (taskId: string, notes: string, fabricId?: string) => void;
-  updateTaskCategory: (taskId: string, category: TaskCategory, fabricId?: string) => void;
-  setCurrentFabric: (fabricId: string) => void;
-  setSearchQuery: (query: string) => void;
-  saveSubChecklist: (name: string, items: any[]) => void;
-  loadSubChecklist: (name: string) => void;
-  deleteSubChecklist: (name: string) => void;
-}
-
-type AppAction = 
-  | { type: 'SET_CURRENT_FABRIC'; payload: string }
-  | { type: 'SET_SEARCH_QUERY'; payload: string }
-  | { type: 'UPDATE_TASK_STATE'; payload: { taskId: string; checked: boolean; fabricId: string } }
-  | { type: 'UPDATE_TASK_NOTES'; payload: { taskId: string; notes: string; fabricId: string } }
-  | { type: 'UPDATE_TASK_CATEGORY'; payload: { taskId: string; category: TaskCategory; fabricId: string } }
-  | { type: 'SAVE_SUB_CHECKLIST'; payload: { name: string; checklist: SubChecklist } }
-  | { type: 'DELETE_SUB_CHECKLIST'; payload: string }
-  | { type: 'LOAD_DATA'; payload: Partial<AppState> }
-  | { type: 'TOGGLE_SECTION'; payload: string };
 
 const initialState: AppState = {
   fabrics: fabricsData,
@@ -345,6 +320,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateTaskState = async (taskId: string, checked: boolean, fabricId?: string) => {
     const targetFabricId = fabricId || state.currentFabric;
     
+    if (checked) {
+      const task = findTaskById(taskId);
+      if (task?.testCase?.dependencies) {
+        const unmetDependencies = task.testCase.dependencies.filter(depId => {
+          const depTestCase = state.testCaseStates[targetFabricId]?.[depId];
+          return depTestCase?.status !== 'Pass';
+        });
+        
+        if (unmetDependencies.length > 0) {
+          console.warn(`Cannot complete task ${taskId}: unmet dependencies ${unmetDependencies.join(', ')}`);
+          return;
+        }
+      }
+    }
+    
     try {
       await apiService.updateTaskState(targetFabricId, taskId, checked);
       
@@ -425,6 +415,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'DELETE_SUB_CHECKLIST', payload: name });
   };
 
+  const findTaskById = (taskId: string): Task | undefined => {
+    for (const section of state.sections) {
+      for (const subsection of section.subsections) {
+        const task = subsection.tasks.find(t => t.id === taskId);
+        if (task) return task;
+      }
+    }
+    return undefined;
+  };
+
+  const getDependencyStatus = (fabricId: string, taskId: string): DependencyStatus => {
+    const task = findTaskById(taskId);
+    const unmetDependencies: string[] = [];
+    const dependentTasks: string[] = [];
+    
+    if (task?.testCase?.dependencies) {
+      task.testCase.dependencies.forEach(depId => {
+        const depTestCase = state.testCaseStates[fabricId]?.[depId];
+        if (depTestCase?.status !== 'Pass') {
+          unmetDependencies.push(depId);
+        }
+      });
+    }
+    
+    state.sections.forEach(section => {
+      section.subsections.forEach(subsection => {
+        subsection.tasks.forEach(t => {
+          if (t.testCase?.dependencies?.includes(task?.testCase?.tcId || '')) {
+            dependentTasks.push(t.testCase.tcId);
+          }
+        });
+      });
+    });
+    
+    return {
+      canComplete: unmetDependencies.length === 0,
+      unmetDependencies,
+      dependentTasks
+    };
+  };
+
   const contextValue: AppContextType = {
     state,
     dispatch,
@@ -437,7 +468,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSearchQuery,
     saveSubChecklist,
     loadSubChecklist,
-    deleteSubChecklist
+    deleteSubChecklist,
+    getDependencyStatus,
+    findTaskById
   };
 
   return (

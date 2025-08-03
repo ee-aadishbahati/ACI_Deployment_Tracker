@@ -18,7 +18,7 @@ export function TaskItem({
   onSelect, 
   bulkMode = false 
 }: TaskItemProps) {
-  const { updateTaskState, updateTaskNotes, updateTaskCategory } = useApp();
+  const { state, updateTaskState, updateTaskNotes, updateTaskCategory } = useApp();
   const [showDetails, setShowDetails] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
 
@@ -225,12 +225,36 @@ export function TaskItem({
                     <div>
                       <span className="font-medium text-gray-700 dark:text-gray-300">Dependencies:</span>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {task.testCase.dependencies.map((dep, index) => (
-                          <span key={index} className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-2 py-1 rounded text-xs">
-                            {dep}
-                          </span>
-                        ))}
+                        {task.testCase.dependencies.map((dep, index) => {
+                          const depTestCase = state.testCaseStates[state.currentFabric]?.[dep];
+                          const isDepCompleted = depTestCase?.status === 'Pass';
+                          
+                          return (
+                            <span 
+                              key={index} 
+                              className={`px-2 py-1 rounded text-xs ${
+                                isDepCompleted 
+                                  ? 'bg-green-200 dark:bg-green-800 text-green-700 dark:text-green-300' 
+                                  : 'bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-300'
+                              }`}
+                              title={isDepCompleted ? 'Dependency completed' : 'Dependency not completed'}
+                            >
+                              {dep} {isDepCompleted ? '✓' : '⚠'}
+                            </span>
+                          );
+                        })}
                       </div>
+                      {task.testCase.dependencies.some(dep => {
+                        const depTestCase = state.testCaseStates[state.currentFabric]?.[dep];
+                        return depTestCase?.status !== 'Pass';
+                      }) && (
+                        <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-xs">
+                          <div className="flex items-center space-x-1 text-yellow-700 dark:text-yellow-300">
+                            <AlertTriangle className="h-3 w-3" />
+                            <span>Complete dependencies before marking this task as done</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

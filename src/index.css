@@ -202,3 +202,27 @@ input[type="checkbox"]:checked {
 .dark .recharts-text {
   fill: var(--chart-text);
 }
+
+/* React Flow dark mode overrides */
+.dark .react-flow__node {
+  color: #f3f4f6;
+}
+
+.dark .react-flow__edge {
+  stroke: #6b7280;
+}
+
+.dark .react-flow__controls {
+  background: #1f2937;
+  border: 1px solid #374151;
+}
+
+.dark .react-flow__controls button {
+  background: #374151;
+  color: #f3f4f6;
+  border-bottom: 1px solid #4b5563;
+}
+
+.dark .react-flow__controls button:hover {
+  background: #4b5563;
+}

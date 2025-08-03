@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 
 function AppContent() {
-  const { state } = useApp();
+  const { state, dispatch, setSearchQuery, getCurrentFabricTasks, getFabricProgress } = useApp();
   const [activeView, setActiveView] = useState<'dashboard' | 'tasks' | 'priorities'>('dashboard');
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [bulkMode, setBulkMode] = useState(false);
@@ -108,18 +108,24 @@ function AppContent() {
   const handleResetAll = async () => {
     if (confirm('Are you sure you want to reset all progress? This action cannot be undone.')) {
       try {
+        localStorage.removeItem('aci-deployment-tracker-data');
+        
         const resetData = {
           fabricStates: {},
           fabricNotes: {},
           testCaseStates: {},
           subChecklists: {},
           taskCategories: {},
-          currentFabric: 'north-it',
-          searchQuery: '',
-          lastSaved: null
+          currentFabric: 'north-it'
         };
         
-        await apiService.updateAllData(resetData);
+        dispatch({ type: 'LOAD_DATA', payload: resetData });
+        
+        setSearchQuery('');
+        setActiveView('tasks');
+        setBulkMode(false);
+        setSelectedTasks([]);
+        
         window.location.reload();
       } catch (error) {
         console.error('Error resetting data:', error);

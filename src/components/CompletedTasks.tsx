@@ -4,8 +4,12 @@ import { CheckCircle2, Calendar, Clock, FileText } from 'lucide-react';
 import { formatCompletionDate, formatWeekRange, isDateInCurrentWeek } from '../utils/dateUtils';
 
 export function CompletedTasks() {
-  const { getCompletedTasks, state } = useApp();
+  const { getCompletedTasks, state, updateTaskState } = useApp();
   const completedTasks = getCompletedTasks();
+
+  const handleUnmarkTask = async (taskId: string, fabricId: string) => {
+    await updateTaskState(taskId, false, fabricId);
+  };
 
   const getWeeklyProgress = () => {
     const completedThisWeek = completedTasks.filter(task => 
@@ -168,7 +172,12 @@ export function CompletedTasks() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <input
+                            type="checkbox"
+                            checked={true}
+                            onChange={() => handleUnmarkTask(task.id, task.fabricId!)}
+                            className="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer"
+                          />
                           <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
                             {task.text}
                           </span>

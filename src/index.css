@@ -177,3 +177,28 @@ input[type="checkbox"]:checked {
 .dark .notification.info {
   background-color: #2563eb;
 }
+
+/* Chart theming variables */
+:root {
+  --tooltip-bg: #ffffff;
+  --tooltip-border: #e5e7eb;
+  --chart-grid: #f3f4f6;
+  --chart-text: #374151;
+}
+
+.dark {
+  --tooltip-bg: #1f2937;
+  --tooltip-border: #374151;
+  --chart-grid: #374151;
+  --chart-text: #d1d5db;
+}
+
+/* Recharts dark mode overrides */
+.dark .recharts-cartesian-grid-horizontal line,
+.dark .recharts-cartesian-grid-vertical line {
+  stroke: var(--chart-grid);
+}
+
+.dark .recharts-text {
+  fill: var(--chart-text);
+}

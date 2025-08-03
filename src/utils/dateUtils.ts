@@ -8,23 +8,23 @@ export function getCurrentWednesdayWeek(): WeekPeriod {
   const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
   
   let daysToLastWednesday;
-  if (currentDay >= 3) {
+  if (currentDay >= 3) { // Wednesday (3) to Saturday (6)
     daysToLastWednesday = currentDay - 3;
-  } else {
-    daysToLastWednesday = currentDay + 4; // (7 - 3) + currentDay
+  } else { // Sunday (0) to Tuesday (2)
+    daysToLastWednesday = currentDay + 4; // Go back to previous week's Wednesday
   }
   
-  const lastWednesday = new Date(now);
-  lastWednesday.setDate(now.getDate() - daysToLastWednesday);
-  lastWednesday.setHours(0, 0, 0, 0);
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - daysToLastWednesday);
+  weekStart.setHours(0, 0, 0, 0);
   
-  const nextTuesday = new Date(lastWednesday);
-  nextTuesday.setDate(lastWednesday.getDate() + 6);
-  nextTuesday.setHours(23, 59, 59, 999);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6); // Add 6 days to get to Tuesday
+  weekEnd.setHours(23, 59, 59, 999);
   
   return {
-    start: lastWednesday,
-    end: nextTuesday
+    start: weekStart,
+    end: weekEnd
   };
 }
 

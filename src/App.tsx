@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 
 function AppContent() {
-  const { state, dispatch, setSearchQuery, getCurrentFabricTasks, getFabricProgress } = useApp();
+  const { state, dispatch, setSearchQuery } = useApp();
   const [activeView, setActiveView] = useState<'dashboard' | 'tasks' | 'priorities'>('dashboard');
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [bulkMode, setBulkMode] = useState(false);

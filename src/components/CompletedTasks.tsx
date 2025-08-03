@@ -1,4 +1,3 @@
-import React from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Task } from '../types';
 import { CheckCircle2, Calendar, Clock, FileText } from 'lucide-react';

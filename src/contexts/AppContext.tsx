@@ -389,6 +389,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateTaskCategoryAcrossAllFabrics = async (taskId: string, category: TaskCategory) => {
+    const task = findTaskById(taskId);
+    if (!task) {
+      console.error(`Task ${taskId} not found`);
+      return;
+    }
+
+    const applicableFabrics = state.fabrics.filter(fabric => {
+      if (task.fabricSpecific) {
+        return fabric.id === state.currentFabric;
+      } else if (task.ndoCentralized) {
+        return fabric.site === 'Tertiary';
+      } else {
+        return true;
+      }
+    });
+
+    try {
+      await Promise.all(
+        applicableFabrics.map(fabric => 
+          apiService.updateTaskCategory(fabric.id, taskId, category)
+        )
+      );
+      
+      applicableFabrics.forEach(fabric => {
+        dispatch({
+          type: 'UPDATE_TASK_CATEGORY',
+          payload: { taskId, category, fabricId: fabric.id }
+        });
+      });
+    } catch (error) {
+      console.error('Error updating task category across fabrics:', error);
+      applicableFabrics.forEach(fabric => {
+        dispatch({
+          type: 'UPDATE_TASK_CATEGORY',
+          payload: { taskId, category, fabricId: fabric.id }
+        });
+      });
+    }
+  };
+
   const setCurrentFabric = (fabricId: string) => {
     dispatch({ type: 'SET_CURRENT_FABRIC', payload: fabricId });
   };
@@ -464,6 +505,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     updateTaskState,
     updateTaskNotes,
     updateTaskCategory,
+    updateTaskCategoryAcrossAllFabrics,
     setCurrentFabric,
     setSearchQuery,
     saveSubChecklist,

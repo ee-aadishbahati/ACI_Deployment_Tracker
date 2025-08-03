@@ -10,13 +10,15 @@ interface BulkOperationsProps {
 }
 
 export function BulkOperations({ selectedTasks, onSelectionChange, onClose }: BulkOperationsProps) {
-  const { updateTaskState, updateTaskCategory, getCurrentFabricTasks } = useApp();
+  const { updateTaskState, updateTaskCategory, updateTaskCategoryAcrossAllFabrics, getCurrentFabricTasks } = useApp();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [applyToAllDatacenters, setApplyToAllDatacenters] = useState(false);
 
   const allTasks = getCurrentFabricTasks();
 
   console.log('BulkOperations rendered with selectedTasks:', selectedTasks);
   console.log('BulkOperations selectedTasks.length:', selectedTasks.length);
+  console.log('BulkOperations allTasks.length:', allTasks.length);
 
   const handleBulkComplete = async (completed: boolean) => {
     setIsProcessing(true);
@@ -33,11 +35,26 @@ export function BulkOperations({ selectedTasks, onSelectionChange, onClose }: Bu
   };
 
   const handleBulkCategory = async (category: TaskCategory) => {
+    if (applyToAllDatacenters) {
+      const categoryLabel = category === 'must-have' ? 'Must Have' : category === 'should-have' ? 'Should Have' : 'Remove Priority';
+      const confirmMessage = `This will apply the "${categoryLabel}" category to ${selectedTasks.length} task(s) across ALL applicable datacenters. This action cannot be undone. Continue?`;
+      
+      if (!window.confirm(confirmMessage)) {
+        return;
+      }
+    }
+
     setIsProcessing(true);
     try {
-      await Promise.all(
-        selectedTasks.map(taskId => updateTaskCategory(taskId, category))
-      );
+      if (applyToAllDatacenters) {
+        await Promise.all(
+          selectedTasks.map(taskId => updateTaskCategoryAcrossAllFabrics(taskId, category))
+        );
+      } else {
+        await Promise.all(
+          selectedTasks.map(taskId => updateTaskCategory(taskId, category))
+        );
+      }
       onSelectionChange([]);
     } catch (error) {
       console.error('Error updating task categories:', error);
@@ -55,7 +72,10 @@ export function BulkOperations({ selectedTasks, onSelectionChange, onClose }: Bu
     onSelectionChange([]);
   };
 
-  if (selectedTasks.length === 0) return null;
+  if (selectedTasks.length === 0) {
+    console.log('BulkOperations returning null due to empty selectedTasks');
+    return null;
+  }
 
   return (
     <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 p-4 z-50">
@@ -88,6 +108,18 @@ export function BulkOperations({ selectedTasks, onSelectionChange, onClose }: Bu
         >
           Deselect All
         </button>
+      </div>
+
+      <div className="flex items-center justify-between mb-3">
+        <label className="flex items-center space-x-2 text-sm">
+          <input
+            type="checkbox"
+            checked={applyToAllDatacenters}
+            onChange={(e) => setApplyToAllDatacenters(e.target.checked)}
+            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+          />
+          <span className="text-gray-700 dark:text-gray-300">Apply to all applicable datacenters</span>
+        </label>
       </div>
 
       <div className="flex items-center space-x-2">

@@ -2,7 +2,6 @@ import { useApp } from '../contexts/AppContext';
 import { BarChart3, Users, AlertTriangle, CheckCircle, Target } from 'lucide-react';
 import { ProgressCharts } from './ProgressCharts';
 import { BurndownChart } from './BurndownChart';
-import { DependencyGraph } from './DependencyGraph';
 
 export function FabricDashboard() {
   const { state, getFabricProgress } = useApp();
@@ -230,8 +229,6 @@ export function FabricDashboard() {
         </div>
       </div>
 
-      {/* Task Dependency Visualization */}
-      <DependencyGraph fabricId={state.currentFabric} />
 
       {/* Enhanced Progress Analytics */}
       <BurndownChart />

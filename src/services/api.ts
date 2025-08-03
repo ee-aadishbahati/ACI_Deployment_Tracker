@@ -1,3 +1,5 @@
+import { Task, Subsection } from '../types';
+
 const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000';
 const IS_PRODUCTION = (import.meta as any).env.MODE === 'production' || 
                      (import.meta as any).env.PROD === true ||
@@ -98,6 +100,34 @@ class ApiService {
     });
     if (!response || !response.ok) {
       throw new Error(`Failed to set current fabric: ${response?.statusText || 'No response'}`);
+    }
+    return response.json();
+  }
+
+  async addTask(sectionId: string, subsectionTitle: string, task: Task): Promise<AppData> {
+    const response = await this.makeRequest(`${API_URL}/api/section/${sectionId}/subsection/${encodeURIComponent(subsectionTitle)}/task`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(task),
+    });
+    if (!response || !response.ok) {
+      throw new Error(`Failed to add task: ${response?.statusText || 'No response'}`);
+    }
+    return response.json();
+  }
+
+  async addSubsection(sectionId: string, subsection: Subsection): Promise<AppData> {
+    const response = await this.makeRequest(`${API_URL}/api/section/${sectionId}/subsection`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(subsection),
+    });
+    if (!response || !response.ok) {
+      throw new Error(`Failed to add subsection: ${response?.statusText || 'No response'}`);
     }
     return response.json();
   }

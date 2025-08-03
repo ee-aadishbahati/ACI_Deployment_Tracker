@@ -105,3 +105,18 @@ export interface NotificationProps {
   type?: 'success' | 'error' | 'warning' | 'info';
   duration?: number;
 }
+
+export interface ProgressSnapshot {
+  date: string;
+  totalTasks: number;
+  completedTasks: number;
+  remainingTasks: number;
+  completionPercentage: number;
+  fabricId?: string;
+}
+
+export interface ChartDataPoint {
+  name: string;
+  value: number;
+  color?: string;
+}

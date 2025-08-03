@@ -231,9 +231,6 @@ function AppContent() {
                   ACI Deployment Tracker
                 </h1>
               </div>
-              <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                Multi-Site Multi-Fabric
-              </span>
             </div>
             
             <div className="flex items-center space-x-4">

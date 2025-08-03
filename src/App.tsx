@@ -148,7 +148,7 @@ function AppContent() {
         ...data,
         exportDate: new Date().toISOString(),
         version: '1.0.0',
-        savedBy: 'ACI Deployment Tracker',
+        savedBy: 'ACI Task Tracker',
         totalFabrics: Object.keys(data.fabricStates).length,
         totalTasks: Object.values(data.fabricStates).reduce((total, fabric) => 
           total + Object.keys(fabric).length, 0)
@@ -228,7 +228,7 @@ function AppContent() {
               <div className="flex items-center space-x-2">
                 <Network className="h-8 w-8 text-blue-600" />
                 <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  ACI Deployment Tracker
+                  ACI Task Tracker
                 </h1>
               </div>
             </div>
@@ -410,7 +410,7 @@ function AppContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
             <div>
-              <span>ACI Deployment Tracker v1.0.0</span>
+              <span>ACI Task Tracker v1.0.0</span>
               <span className="mx-2">•</span>
               <span>Essential Energy</span>
             </div>

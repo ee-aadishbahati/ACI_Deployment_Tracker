@@ -10,7 +10,7 @@ interface BulkOperationsProps {
 }
 
 export function BulkOperations({ selectedTasks, onSelectionChange, onClose }: BulkOperationsProps) {
-  const { updateTaskState, updateTaskCategory, updateTaskCategoryAcrossSelectedFabrics, getCurrentFabricTasks, state, getFabricProgress } = useApp();
+  const { updateTaskState, updateTaskStateAcrossSelectedFabrics, updateTaskCategory, updateTaskCategoryAcrossSelectedFabrics, getCurrentFabricTasks, state, getFabricProgress } = useApp();
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedFabrics, setSelectedFabrics] = useState<string[]>([]);
   const [showFabricSelection, setShowFabricSelection] = useState(false);
@@ -22,11 +22,29 @@ export function BulkOperations({ selectedTasks, onSelectionChange, onClose }: Bu
   console.log('BulkOperations allTasks.length:', allTasks.length);
 
   const handleBulkComplete = async (completed: boolean) => {
+    if (selectedFabrics.length > 0) {
+      const actionLabel = completed ? 'Mark Complete' : 'Mark Incomplete';
+      const fabricNames = selectedFabrics.map(fabricId => 
+        state.fabrics.find(f => f.id === fabricId)?.name || fabricId
+      ).join(', ');
+      const confirmMessage = `This will ${actionLabel.toLowerCase()} ${selectedTasks.length} task(s) across the following fabrics: ${fabricNames}. This action cannot be undone. Continue?`;
+      
+      if (!window.confirm(confirmMessage)) {
+        return;
+      }
+    }
+
     setIsProcessing(true);
     try {
-      await Promise.all(
-        selectedTasks.map(taskId => updateTaskState(taskId, completed))
-      );
+      if (selectedFabrics.length > 0) {
+        await Promise.all(
+          selectedTasks.map(taskId => updateTaskStateAcrossSelectedFabrics(taskId, completed, selectedFabrics))
+        );
+      } else {
+        await Promise.all(
+          selectedTasks.map(taskId => updateTaskState(taskId, completed))
+        );
+      }
       onSelectionChange([]);
     } catch (error) {
       console.error('Error updating tasks:', error);

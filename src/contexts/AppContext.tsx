@@ -418,6 +418,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateTaskStateAcrossSelectedFabrics = async (taskId: string, checked: boolean, fabricIds: string[]) => {
+    const task = findTaskById(taskId);
+    if (!task) {
+      console.error(`Task ${taskId} not found`);
+      return;
+    }
+
+    const selectedFabrics = state.fabrics.filter(fabric => fabricIds.includes(fabric.id));
+
+    try {
+      await Promise.all(
+        selectedFabrics.map(fabric => 
+          apiService.updateTaskState(fabric.id, taskId, checked)
+        )
+      );
+      
+      selectedFabrics.forEach(fabric => {
+        dispatch({
+          type: 'UPDATE_TASK_STATE',
+          payload: { taskId, checked, fabricId: fabric.id }
+        });
+      });
+    } catch (error) {
+      console.error('Error updating task state across selected fabrics:', error);
+      selectedFabrics.forEach(fabric => {
+        dispatch({
+          type: 'UPDATE_TASK_STATE',
+          payload: { taskId, checked, fabricId: fabric.id }
+        });
+      });
+    }
+  };
+
   const updateTaskCategoryAcrossSelectedFabrics = async (taskId: string, category: TaskCategory, fabricIds: string[]) => {
     const task = findTaskById(taskId);
     if (!task) {
@@ -615,6 +648,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     getCurrentFabricTasks,
     getFabricProgress,
     updateTaskState,
+    updateTaskStateAcrossSelectedFabrics,
     updateTaskNotes,
     updateTaskCategory,
     updateTaskCategoryAcrossSelectedFabrics,

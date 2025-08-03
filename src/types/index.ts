@@ -153,6 +153,7 @@ export interface AppContextType {
   getCurrentFabricTasks: () => Task[];
   getFabricProgress: (fabricId: string) => FabricProgress;
   updateTaskState: (taskId: string, checked: boolean, fabricId?: string) => Promise<void>;
+  updateTaskStateAcrossSelectedFabrics: (taskId: string, checked: boolean, fabricIds: string[]) => Promise<void>;
   updateTaskNotes: (taskId: string, notes: string, fabricId?: string) => Promise<void>;
   updateTaskCategory: (taskId: string, category: TaskCategory, fabricId?: string) => Promise<void>;
   updateTaskCategoryAcrossSelectedFabrics: (taskId: string, category: TaskCategory, fabricIds: string[]) => Promise<void>;

@@ -1,7 +1,6 @@
 import { Section, Task } from '../types';
 import { useApp } from '../contexts/AppContext';
 import { TaskItem } from './TaskItem';
-import { DependencyGraph } from './DependencyGraph';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface TaskSectionProps {
@@ -100,10 +99,6 @@ export function TaskSection({
 
       {section.expanded && (
         <div className="p-6">
-          {/* Section Dependency Graph */}
-          <div className="mb-6">
-            <DependencyGraph fabricId={state.currentFabric} sectionId={section.id} />
-          </div>
           
           {section.subsections.map((subsection, subsectionIndex) => {
             const subsectionTasks = getFilteredTasks(

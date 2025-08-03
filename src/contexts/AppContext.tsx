@@ -1,31 +1,10 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { AppState, Task, SubChecklist, FabricProgress } from '../types';
+import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
+import { AppState, Task, SubChecklist, FabricProgress, TaskCategory, DependencyStatus, AppContextType, AppAction } from '../types';
 import { fabricsData } from '../data/fabricsData';
 import { sectionsData } from '../data/sectionsData';
+import { apiService } from '../services/api';
+import { useWebSocket } from '../hooks/useWebSocket';
 
-interface AppContextType {
-  state: AppState;
-  dispatch: React.Dispatch<AppAction>;
-  getCurrentFabricTasks: () => Task[];
-  getFabricProgress: (fabricId: string) => FabricProgress;
-  updateTaskState: (taskId: string, checked: boolean, fabricId?: string) => void;
-  updateTaskNotes: (taskId: string, notes: string, fabricId?: string) => void;
-  setCurrentFabric: (fabricId: string) => void;
-  setSearchQuery: (query: string) => void;
-  saveSubChecklist: (name: string, items: any[]) => void;
-  loadSubChecklist: (name: string) => void;
-  deleteSubChecklist: (name: string) => void;
-}
-
-type AppAction = 
-  | { type: 'SET_CURRENT_FABRIC'; payload: string }
-  | { type: 'SET_SEARCH_QUERY'; payload: string }
-  | { type: 'UPDATE_TASK_STATE'; payload: { taskId: string; checked: boolean; fabricId: string } }
-  | { type: 'UPDATE_TASK_NOTES'; payload: { taskId: string; notes: string; fabricId: string } }
-  | { type: 'SAVE_SUB_CHECKLIST'; payload: { name: string; checklist: SubChecklist } }
-  | { type: 'DELETE_SUB_CHECKLIST'; payload: string }
-  | { type: 'LOAD_DATA'; payload: Partial<AppState> }
-  | { type: 'TOGGLE_SECTION'; payload: string };
 
 const initialState: AppState = {
   fabrics: fabricsData,
@@ -35,7 +14,8 @@ const initialState: AppState = {
   subChecklists: {},
   fabricStates: {},
   fabricNotes: {},
-  testCaseStates: {}
+  testCaseStates: {},
+  taskCategories: {}
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -72,6 +52,19 @@ function appReducer(state: AppState, action: AppAction): AppState {
         }
       };
     
+    case 'UPDATE_TASK_CATEGORY':
+      const { taskId: catTaskId, category, fabricId: catFabricId } = action.payload;
+      return {
+        ...state,
+        taskCategories: {
+          ...state.taskCategories,
+          [catFabricId]: {
+            ...state.taskCategories[catFabricId],
+            [catTaskId]: category
+          }
+        }
+      };
+    
     case 'SAVE_SUB_CHECKLIST':
       return {
         ...state,
@@ -99,7 +92,23 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
     
     case 'LOAD_DATA':
-      return { ...state, ...action.payload };
+      console.log('=== LOAD_DATA REDUCER DEBUG ===');
+      console.log('Current state before load:', state);
+      console.log('Payload to load:', action.payload);
+      
+      const validatedPayload = {
+        ...action.payload,
+        fabricStates: action.payload.fabricStates || {},
+        fabricNotes: action.payload.fabricNotes || {},
+        testCaseStates: action.payload.testCaseStates || {},
+        subChecklists: action.payload.subChecklists || {},
+        taskCategories: action.payload.taskCategories || {}
+      };
+      
+      const newState = { ...state, ...validatedPayload };
+      console.log('New state after load:', newState);
+      console.log('fabricStates in new state:', newState.fabricStates);
+      return newState;
     
     default:
       return state;
@@ -110,29 +119,121 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
+
+  useWebSocket({
+    onTaskStateUpdate: (fabricId: string, taskId: string, checked: boolean) => {
+      dispatch({
+        type: 'UPDATE_TASK_STATE',
+        payload: { taskId, checked, fabricId }
+      });
+    },
+    onTaskNotesUpdate: (fabricId: string, taskId: string, notes: string) => {
+      dispatch({
+        type: 'UPDATE_TASK_NOTES',
+        payload: { taskId, notes, fabricId }
+      });
+    },
+    onTaskCategoryUpdate: (fabricId: string, taskId: string, category: string) => {
+      dispatch({
+        type: 'UPDATE_TASK_CATEGORY',
+        payload: { taskId, category: category as TaskCategory, fabricId }
+      });
+    },
+  });
+
+  const isLocalStorageAvailable = () => {
+    try {
+      const test = '__localStorage_test__';
+      localStorage.setItem(test, test);
+      localStorage.removeItem(test);
+      return true;
+    } catch (error) {
+      console.error('localStorage is not available:', error);
+      return false;
+    }
+  };
 
   useEffect(() => {
-    const savedData = localStorage.getItem('aci-deployment-tracker-data');
-    if (savedData) {
+    console.log('=== API DATA RESTORATION DEBUG ===');
+    const loadData = async () => {
       try {
-        const parsedData = JSON.parse(savedData);
-        dispatch({ type: 'LOAD_DATA', payload: parsedData });
+        const data = await apiService.getAllData();
+        console.log('1. Data loaded from API:', data);
+        console.log('2. fabricStates from API:', data.fabricStates);
+        console.log('3. Dispatching LOAD_DATA with payload:', data);
+        dispatch({ type: 'LOAD_DATA', payload: {
+          fabricStates: data.fabricStates,
+          fabricNotes: data.fabricNotes,
+          testCaseStates: data.testCaseStates,
+          subChecklists: data.subChecklists,
+          taskCategories: data.taskCategories as any,
+          currentFabric: data.currentFabric || undefined
+        } });
+        console.log('4. LOAD_DATA dispatch completed');
       } catch (error) {
-        console.error('Error loading saved data:', error);
+        console.error('Error loading data from API:', error);
+        console.log('5. Falling back to localStorage');
+        
+        const savedData = localStorage.getItem('aci-deployment-tracker-data');
+        if (savedData) {
+          try {
+            const parsedData = JSON.parse(savedData);
+            console.log('6. Parsed localStorage data:', parsedData);
+            dispatch({ type: 'LOAD_DATA', payload: parsedData });
+          } catch (parseError) {
+            console.error('Error parsing localStorage data:', parseError);
+          }
+        }
       }
-    }
+      
+      setHasLoadedFromStorage(true);
+      console.log('7. Initial load completed, enabling saves');
+    };
+    
+    loadData();
   }, []);
 
   useEffect(() => {
+    if (!hasLoadedFromStorage) {
+      console.log('=== SKIPPING SAVE - NOT YET LOADED FROM STORAGE ===');
+      return;
+    }
+    
+    if (!isLocalStorageAvailable()) {
+      console.warn('localStorage is not available, skipping save operation');
+      return;
+    }
+
     const dataToSave = {
       fabricStates: state.fabricStates,
       fabricNotes: state.fabricNotes,
       testCaseStates: state.testCaseStates,
       subChecklists: state.subChecklists,
-      currentFabric: state.currentFabric
+      taskCategories: state.taskCategories,
+      currentFabric: state.currentFabric,
+      lastSaved: new Date().toISOString()
     };
-    localStorage.setItem('aci-deployment-tracker-data', JSON.stringify(dataToSave));
-  }, [state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.currentFabric]);
+    
+    console.log('=== SAVING TO LOCALSTORAGE DEBUG ===');
+    console.log('Data being saved:', dataToSave);
+    console.log('fabricStates being saved:', state.fabricStates);
+    
+    try {
+      const dataString = JSON.stringify(dataToSave);
+      localStorage.setItem('aci-deployment-tracker-data', dataString);
+      console.log('Data saved to localStorage successfully');
+      
+      const verification = localStorage.getItem('aci-deployment-tracker-data');
+      if (!verification) {
+        console.error('localStorage save verification failed - data not found after save');
+      } else {
+        console.log('localStorage save verified successfully');
+      }
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  }, [hasLoadedFromStorage, state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.taskCategories, state.currentFabric]);
 
   const getCurrentFabricTasks = (): Task[] => {
     const currentFabric = state.fabrics.find(f => f.id === state.currentFabric);
@@ -148,7 +249,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             allTasks.push({
               ...task,
               checked: state.fabricStates[state.currentFabric]?.[task.id] || false,
-              notes: state.fabricNotes[state.currentFabric]?.[task.id] || ''
+              notes: state.fabricNotes[state.currentFabric]?.[task.id] || '',
+              category: state.taskCategories[state.currentFabric]?.[task.id] || 'none'
             });
           }
         });
@@ -215,20 +317,76 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   };
 
-  const updateTaskState = (taskId: string, checked: boolean, fabricId?: string) => {
+  const updateTaskState = async (taskId: string, checked: boolean, fabricId?: string) => {
     const targetFabricId = fabricId || state.currentFabric;
-    dispatch({
-      type: 'UPDATE_TASK_STATE',
-      payload: { taskId, checked, fabricId: targetFabricId }
-    });
+    
+    if (checked) {
+      const task = findTaskById(taskId);
+      if (task?.testCase?.dependencies) {
+        const unmetDependencies = task.testCase.dependencies.filter(depId => {
+          const depTestCase = state.testCaseStates[targetFabricId]?.[depId];
+          return depTestCase?.status !== 'Pass';
+        });
+        
+        if (unmetDependencies.length > 0) {
+          console.warn(`Cannot complete task ${taskId}: unmet dependencies ${unmetDependencies.join(', ')}`);
+          return;
+        }
+      }
+    }
+    
+    try {
+      await apiService.updateTaskState(targetFabricId, taskId, checked);
+      
+      dispatch({
+        type: 'UPDATE_TASK_STATE',
+        payload: { taskId, checked, fabricId: targetFabricId }
+      });
+    } catch (error) {
+      console.error('Error updating task state:', error);
+      dispatch({
+        type: 'UPDATE_TASK_STATE',
+        payload: { taskId, checked, fabricId: targetFabricId }
+      });
+    }
   };
 
-  const updateTaskNotes = (taskId: string, notes: string, fabricId?: string) => {
+  const updateTaskNotes = async (taskId: string, notes: string, fabricId?: string) => {
     const targetFabricId = fabricId || state.currentFabric;
-    dispatch({
-      type: 'UPDATE_TASK_NOTES',
-      payload: { taskId, notes, fabricId: targetFabricId }
-    });
+    
+    try {
+      await apiService.updateTaskNotes(targetFabricId, taskId, notes);
+      
+      dispatch({
+        type: 'UPDATE_TASK_NOTES',
+        payload: { taskId, notes, fabricId: targetFabricId }
+      });
+    } catch (error) {
+      console.error('Error updating task notes:', error);
+      dispatch({
+        type: 'UPDATE_TASK_NOTES',
+        payload: { taskId, notes, fabricId: targetFabricId }
+      });
+    }
+  };
+
+  const updateTaskCategory = async (taskId: string, category: TaskCategory, fabricId?: string) => {
+    const targetFabricId = fabricId || state.currentFabric;
+    
+    try {
+      await apiService.updateTaskCategory(targetFabricId, taskId, category);
+      
+      dispatch({
+        type: 'UPDATE_TASK_CATEGORY',
+        payload: { taskId, category, fabricId: targetFabricId }
+      });
+    } catch (error) {
+      console.error('Error updating task category:', error);
+      dispatch({
+        type: 'UPDATE_TASK_CATEGORY',
+        payload: { taskId, category, fabricId: targetFabricId }
+      });
+    }
   };
 
   const setCurrentFabric = (fabricId: string) => {
@@ -257,6 +415,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'DELETE_SUB_CHECKLIST', payload: name });
   };
 
+  const findTaskById = (taskId: string): Task | undefined => {
+    for (const section of state.sections) {
+      for (const subsection of section.subsections) {
+        const task = subsection.tasks.find(t => t.id === taskId);
+        if (task) return task;
+      }
+    }
+    return undefined;
+  };
+
+  const getDependencyStatus = (fabricId: string, taskId: string): DependencyStatus => {
+    const task = findTaskById(taskId);
+    const unmetDependencies: string[] = [];
+    const dependentTasks: string[] = [];
+    
+    if (task?.testCase?.dependencies) {
+      task.testCase.dependencies.forEach(depId => {
+        const depTestCase = state.testCaseStates[fabricId]?.[depId];
+        if (depTestCase?.status !== 'Pass') {
+          unmetDependencies.push(depId);
+        }
+      });
+    }
+    
+    state.sections.forEach(section => {
+      section.subsections.forEach(subsection => {
+        subsection.tasks.forEach(t => {
+          if (t.testCase?.dependencies?.includes(task?.testCase?.tcId || '')) {
+            dependentTasks.push(t.testCase.tcId);
+          }
+        });
+      });
+    });
+    
+    return {
+      canComplete: unmetDependencies.length === 0,
+      unmetDependencies,
+      dependentTasks
+    };
+  };
+
   const contextValue: AppContextType = {
     state,
     dispatch,
@@ -264,11 +463,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     getFabricProgress,
     updateTaskState,
     updateTaskNotes,
+    updateTaskCategory,
     setCurrentFabric,
     setSearchQuery,
     saveSubChecklist,
     loadSubChecklist,
-    deleteSubChecklist
+    deleteSubChecklist,
+    getDependencyStatus,
+    findTaskById
   };
 
   return (

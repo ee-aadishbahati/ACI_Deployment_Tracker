@@ -4,6 +4,7 @@ export type Priority = 'High' | 'Medium' | 'Low';
 export type Risk = 'High' | 'Medium' | 'Low';
 export type ExecutionStatus = 'T.B.E.' | 'Pass' | 'Fail' | 'Partial' | 'Defer' | 'R.I.';
 export type ResourceRole = 'EE' | 'PS' | 'SP' | 'OK' | 'Vendor';
+export type TaskCategory = 'must-have' | 'should-have' | 'none';
 
 export interface Fabric {
   id: string;
@@ -45,6 +46,7 @@ export interface Task {
   fabricTypeSpecific?: FabricType[];
   dependencies?: string[];
   addedToSubChecklist?: boolean;
+  category?: TaskCategory;
 }
 
 export interface Subsection {
@@ -95,10 +97,67 @@ export interface AppState {
   fabricStates: { [fabricId: string]: { [taskId: string]: boolean } };
   fabricNotes: { [fabricId: string]: { [taskId: string]: string } };
   testCaseStates: { [fabricId: string]: { [tcId: string]: TestCase } };
+  taskCategories: { [fabricId: string]: { [taskId: string]: TaskCategory } };
 }
+
+export type AppAction = 
+  | { type: 'SET_CURRENT_FABRIC'; payload: string }
+  | { type: 'SET_SEARCH_QUERY'; payload: string }
+  | { type: 'UPDATE_TASK_STATE'; payload: { taskId: string; checked: boolean; fabricId: string } }
+  | { type: 'UPDATE_TASK_NOTES'; payload: { taskId: string; notes: string; fabricId: string } }
+  | { type: 'UPDATE_TASK_CATEGORY'; payload: { taskId: string; category: TaskCategory; fabricId: string } }
+  | { type: 'SAVE_SUB_CHECKLIST'; payload: { name: string; checklist: SubChecklist } }
+  | { type: 'DELETE_SUB_CHECKLIST'; payload: string }
+  | { type: 'LOAD_DATA'; payload: Partial<AppState> }
+  | { type: 'TOGGLE_SECTION'; payload: string };
 
 export interface NotificationProps {
   message: string;
   type?: 'success' | 'error' | 'warning' | 'info';
   duration?: number;
+}
+
+export interface ProgressSnapshot {
+  date: string;
+  totalTasks: number;
+  completedTasks: number;
+  remainingTasks: number;
+  completionPercentage: number;
+  fabricId?: string;
+}
+
+export interface ChartDataPoint {
+  name: string;
+  value: number;
+  color?: string;
+}
+
+export interface DependencyStatus {
+  canComplete: boolean;
+  unmetDependencies: string[];
+  dependentTasks: string[];
+}
+
+export interface DependencyValidationResult {
+  isValid: boolean;
+  blockedBy: string[];
+  blocks: string[];
+  message?: string;
+}
+
+export interface AppContextType {
+  state: AppState;
+  dispatch: React.Dispatch<AppAction>;
+  getCurrentFabricTasks: () => Task[];
+  getFabricProgress: (fabricId: string) => FabricProgress;
+  updateTaskState: (taskId: string, checked: boolean, fabricId?: string) => Promise<void>;
+  updateTaskNotes: (taskId: string, notes: string, fabricId?: string) => Promise<void>;
+  updateTaskCategory: (taskId: string, category: TaskCategory, fabricId?: string) => Promise<void>;
+  setCurrentFabric: (fabricId: string) => void;
+  setSearchQuery: (query: string) => void;
+  saveSubChecklist: (name: string, items: any[]) => void;
+  loadSubChecklist: () => void;
+  deleteSubChecklist: (name: string) => void;
+  getDependencyStatus: (fabricId: string, taskId: string) => DependencyStatus;
+  findTaskById: (taskId: string) => Task | undefined;
 }

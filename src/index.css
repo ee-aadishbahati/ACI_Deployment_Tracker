@@ -128,3 +128,101 @@ input[type="checkbox"]:checked {
     opacity: 1;
   }
 }
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tw-bg-opacity: 1;
+    background-color: rgb(17 24 39 / var(--tw-bg-opacity));
+    color: rgb(243 244 246 / var(--tw-text-opacity));
+  }
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+/* Custom dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Dark mode checkbox styles */
+.dark input[type="checkbox"]:checked {
+  background-color: #0D6EFD;
+  border-color: #0D6EFD;
+}
+
+/* Dark mode notification styles */
+.dark .notification.success {
+  background-color: #059669;
+}
+
+.dark .notification.error {
+  background-color: #dc2626;
+}
+
+.dark .notification.warning {
+  background-color: #d97706;
+}
+
+.dark .notification.info {
+  background-color: #2563eb;
+}
+
+/* Chart theming variables */
+:root {
+  --tooltip-bg: #ffffff;
+  --tooltip-border: #e5e7eb;
+  --chart-grid: #f3f4f6;
+  --chart-text: #374151;
+}
+
+.dark {
+  --tooltip-bg: #1f2937;
+  --tooltip-border: #374151;
+  --chart-grid: #374151;
+  --chart-text: #d1d5db;
+}
+
+/* Recharts dark mode overrides */
+.dark .recharts-cartesian-grid-horizontal line,
+.dark .recharts-cartesian-grid-vertical line {
+  stroke: var(--chart-grid);
+}
+
+.dark .recharts-text {
+  fill: var(--chart-text);
+}
+
+/* React Flow dark mode overrides */
+.dark .react-flow__node {
+  color: #f3f4f6;
+}
+
+.dark .react-flow__edge {
+  stroke: #6b7280;
+}
+
+.dark .react-flow__controls {
+  background: #1f2937;
+  border: 1px solid #374151;
+}
+
+.dark .react-flow__controls button {
+  background: #374151;
+  color: #f3f4f6;
+  border-bottom: 1px solid #4b5563;
+}
+
+.dark .react-flow__controls button:hover {
+  background: #4b5563;
+}

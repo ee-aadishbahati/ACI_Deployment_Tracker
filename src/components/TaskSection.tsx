@@ -44,13 +44,17 @@ export function TaskSection({
             (task.ndoCentralized && currentFabric.site === 'Tertiary') ||
             (!task.fabricSpecific && !task.ndoCentralized)) {
           
-          const taskWithState = {
-            ...task,
-            checked: state.fabricStates[state.currentFabric]?.[task.id] || false,
-            notes: state.fabricNotes[state.currentFabric]?.[task.id] || ''
-          };
+          const isCompleted = state.fabricStates[state.currentFabric]?.[task.id] || false;
           
-          allTasks.push(taskWithState);
+          if (!isCompleted) {
+            const taskWithState = {
+              ...task,
+              checked: false,
+              notes: state.fabricNotes[state.currentFabric]?.[task.id] || ''
+            };
+            
+            allTasks.push(taskWithState);
+          }
         }
       });
     });
@@ -105,12 +109,14 @@ export function TaskSection({
               subsection.tasks.filter(task => {
                 if (!currentFabric) return false;
                 
-                return task.fabricSpecific || 
+                const isCompleted = state.fabricStates[state.currentFabric]?.[task.id] || false;
+                
+                return !isCompleted && (task.fabricSpecific || 
                        (task.ndoCentralized && currentFabric.site === 'Tertiary') ||
-                       (!task.fabricSpecific && !task.ndoCentralized);
+                       (!task.fabricSpecific && !task.ndoCentralized));
               }).map(task => ({
                 ...task,
-                checked: state.fabricStates[state.currentFabric]?.[task.id] || false,
+                checked: false,
                 notes: state.fabricNotes[state.currentFabric]?.[task.id] || ''
               }))
             );

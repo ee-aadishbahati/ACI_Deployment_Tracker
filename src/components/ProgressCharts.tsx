@@ -26,6 +26,7 @@ export function ProgressCharts() {
     name: fabric.name,
     site: fabric.site,
     type: fabric.type,
+    siteType: `${fabric.site} ${fabric.type}`,
     completion: progress.totalTasks > 0 ? Math.round((progress.completedTasks / progress.totalTasks) * 100) : 0,
     testCompletion: progress.totalTestCases > 0 ? Math.round((progress.completedTestCases / progress.totalTestCases) * 100) : 0,
     totalTasks: progress.totalTasks,
@@ -148,7 +149,13 @@ export function ProgressCharts() {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={completionData}>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="site" className="text-xs" />
+              <XAxis 
+                dataKey="siteType" 
+                angle={-45}
+                textAnchor="end"
+                height={80}
+                className="text-xs" 
+              />
               <YAxis className="text-xs" />
               <Tooltip 
                 contentStyle={{ 

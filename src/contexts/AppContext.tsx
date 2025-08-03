@@ -273,6 +273,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const dataToSave = {
       fabricStates: state.fabricStates,
       fabricNotes: state.fabricNotes,
+      fabricCompletionDates: state.fabricCompletionDates,
+      fabricNoteModificationDates: state.fabricNoteModificationDates,
       testCaseStates: state.testCaseStates,
       subChecklists: state.subChecklists,
       taskCategories: state.taskCategories,

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
-import { AppState, Task, SubChecklist, FabricProgress, TaskCategory, DependencyStatus, AppContextType, AppAction } from '../types';
+import { AppState, Task, SubChecklist, FabricProgress, TaskCategory, DependencyStatus, AppContextType, AppAction, Subsection } from '../types';
 import { fabricsData } from '../data/fabricsData';
 import { sectionsData } from '../data/sectionsData';
 import { apiService } from '../services/api';
@@ -87,6 +87,35 @@ function appReducer(state: AppState, action: AppAction): AppState {
         sections: state.sections.map(section =>
           section.id === action.payload
             ? { ...section, expanded: !section.expanded }
+            : section
+        )
+      };
+    
+    case 'ADD_TASK':
+      const { sectionId, subsectionTitle, task } = action.payload;
+      return {
+        ...state,
+        sections: state.sections.map(section =>
+          section.id === sectionId
+            ? {
+                ...section,
+                subsections: section.subsections.map(subsection =>
+                  subsection.title === subsectionTitle
+                    ? { ...subsection, tasks: [...subsection.tasks, task] }
+                    : subsection
+                )
+              }
+            : section
+        )
+      };
+    
+    case 'ADD_SUBSECTION':
+      const { sectionId: newSectionId, subsection } = action.payload;
+      return {
+        ...state,
+        sections: state.sections.map(section =>
+          section.id === newSectionId
+            ? { ...section, subsections: [...section.subsections, subsection] }
             : section
         )
       };
@@ -499,6 +528,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return undefined;
   };
 
+  const addTask = async (sectionId: string, subsectionTitle: string, taskData: {
+    text: string;
+    fabricSpecific: boolean;
+    ndoCentralized: boolean;
+    testCaseId?: string;
+  }) => {
+    const createDeterministicId = (text: string): string => {
+      let hash = 0;
+      for (let i = 0; i < text.length; i++) {
+        const char = text.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      return `task-${Math.abs(hash).toString(36)}`;
+    };
+
+    const newTask: Task = {
+      id: createDeterministicId(taskData.text),
+      text: taskData.text,
+      checked: false,
+      notes: '',
+      fabricSpecific: taskData.fabricSpecific,
+      ndoCentralized: taskData.ndoCentralized,
+      addedToSubChecklist: false
+    };
+
+    dispatch({ type: 'ADD_TASK', payload: { sectionId, subsectionTitle, task: newTask } });
+    
+    try {
+      await apiService.addTask(sectionId, subsectionTitle, newTask);
+    } catch (error) {
+      console.error('Error saving new task:', error);
+    }
+  };
+
+  const addSubsection = async (sectionId: string, subsectionTitle: string) => {
+    const newSubsection: Subsection = {
+      title: subsectionTitle,
+      tasks: []
+    };
+
+    dispatch({ type: 'ADD_SUBSECTION', payload: { sectionId, subsection: newSubsection } });
+    
+    try {
+      await apiService.addSubsection(sectionId, newSubsection);
+    } catch (error) {
+      console.error('Error saving new subsection:', error);
+    }
+  };
+
   const getDependencyStatus = (fabricId: string, taskId: string): DependencyStatus => {
     const task = findTaskById(taskId);
     const unmetDependencies: string[] = [];
@@ -540,6 +619,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     updateTaskCategory,
     updateTaskCategoryAcrossSelectedFabrics,
     updateTaskCategoryAcrossAllFabrics,
+    addTask,
+    addSubsection,
     setCurrentFabric,
     setSearchQuery,
     saveSubChecklist,

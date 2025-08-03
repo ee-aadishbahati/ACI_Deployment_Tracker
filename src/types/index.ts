@@ -106,6 +106,8 @@ export type AppAction =
   | { type: 'UPDATE_TASK_STATE'; payload: { taskId: string; checked: boolean; fabricId: string } }
   | { type: 'UPDATE_TASK_NOTES'; payload: { taskId: string; notes: string; fabricId: string } }
   | { type: 'UPDATE_TASK_CATEGORY'; payload: { taskId: string; category: TaskCategory; fabricId: string } }
+  | { type: 'ADD_TASK'; payload: { sectionId: string; subsectionTitle: string; task: Task } }
+  | { type: 'ADD_SUBSECTION'; payload: { sectionId: string; subsection: Subsection } }
   | { type: 'SAVE_SUB_CHECKLIST'; payload: { name: string; checklist: SubChecklist } }
   | { type: 'DELETE_SUB_CHECKLIST'; payload: string }
   | { type: 'LOAD_DATA'; payload: Partial<AppState> }
@@ -155,6 +157,8 @@ export interface AppContextType {
   updateTaskCategory: (taskId: string, category: TaskCategory, fabricId?: string) => Promise<void>;
   updateTaskCategoryAcrossSelectedFabrics: (taskId: string, category: TaskCategory, fabricIds: string[]) => Promise<void>;
   updateTaskCategoryAcrossAllFabrics: (taskId: string, category: TaskCategory) => Promise<void>;
+  addTask: (sectionId: string, subsectionTitle: string, taskData: { text: string; fabricSpecific: boolean; ndoCentralized: boolean; testCaseId?: string }) => Promise<void>;
+  addSubsection: (sectionId: string, subsectionTitle: string) => Promise<void>;
   setCurrentFabric: (fabricId: string) => void;
   setSearchQuery: (query: string) => void;
   saveSubChecklist: (name: string, items: any[]) => void;

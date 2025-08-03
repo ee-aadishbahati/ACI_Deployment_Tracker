@@ -47,6 +47,12 @@ export interface Task {
   dependencies?: string[];
   addedToSubChecklist?: boolean;
   category?: TaskCategory;
+  fabricId?: string;
+  fabricName?: string;
+  completionDate?: string;
+  sectionTitle?: string;
+  subsectionTitle?: string;
+  noteModificationDate?: string;
 }
 
 export interface Subsection {
@@ -96,6 +102,8 @@ export interface AppState {
   subChecklists: { [key: string]: SubChecklist };
   fabricStates: { [fabricId: string]: { [taskId: string]: boolean } };
   fabricNotes: { [fabricId: string]: { [taskId: string]: string } };
+  fabricCompletionDates: { [fabricId: string]: { [taskId: string]: string } };
+  fabricNoteModificationDates: { [fabricId: string]: { [taskId: string]: string } };
   testCaseStates: { [fabricId: string]: { [tcId: string]: TestCase } };
   taskCategories: { [fabricId: string]: { [taskId: string]: TaskCategory } };
 }
@@ -106,6 +114,8 @@ export type AppAction =
   | { type: 'UPDATE_TASK_STATE'; payload: { taskId: string; checked: boolean; fabricId: string } }
   | { type: 'UPDATE_TASK_NOTES'; payload: { taskId: string; notes: string; fabricId: string } }
   | { type: 'UPDATE_TASK_CATEGORY'; payload: { taskId: string; category: TaskCategory; fabricId: string } }
+  | { type: 'UPDATE_TASK_COMPLETION_DATE'; payload: { taskId: string; completionDate: string | null; fabricId: string } }
+  | { type: 'UPDATE_NOTE_MODIFICATION_DATE'; payload: { taskId: string; modificationDate: string; fabricId: string } }
   | { type: 'ADD_TASK'; payload: { sectionId: string; subsectionTitle: string; task: Task } }
   | { type: 'ADD_SUBSECTION'; payload: { sectionId: string; subsection: Subsection } }
   | { type: 'SAVE_SUB_CHECKLIST'; payload: { name: string; checklist: SubChecklist } }
@@ -151,6 +161,7 @@ export interface AppContextType {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
   getCurrentFabricTasks: () => Task[];
+  getCompletedTasks: () => Task[];
   getFabricProgress: (fabricId: string) => FabricProgress;
   updateTaskState: (taskId: string, checked: boolean, fabricId?: string) => Promise<void>;
   updateTaskStateAcrossSelectedFabrics: (taskId: string, checked: boolean, fabricIds: string[]) => Promise<void>;

@@ -14,6 +14,8 @@ const initialState: AppState = {
   subChecklists: {},
   fabricStates: {},
   fabricNotes: {},
+  fabricCompletionDates: {},
+  fabricNoteModificationDates: {},
   testCaseStates: {},
   taskCategories: {}
 };
@@ -40,14 +42,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
     
     case 'UPDATE_TASK_NOTES':
-      const { taskId: noteTaskId, notes, fabricId: noteFabricId } = action.payload;
+      const { taskId: updateNoteTaskId, notes, fabricId: updateNoteFabricId } = action.payload;
       return {
         ...state,
         fabricNotes: {
           ...state.fabricNotes,
-          [noteFabricId]: {
-            ...state.fabricNotes[noteFabricId],
-            [noteTaskId]: notes
+          [updateNoteFabricId]: {
+            ...state.fabricNotes[updateNoteFabricId],
+            [updateNoteTaskId]: notes
           }
         }
       };
@@ -129,6 +131,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...action.payload,
         fabricStates: action.payload.fabricStates || {},
         fabricNotes: action.payload.fabricNotes || {},
+        fabricCompletionDates: action.payload.fabricCompletionDates || {},
+        fabricNoteModificationDates: action.payload.fabricNoteModificationDates || {},
         testCaseStates: action.payload.testCaseStates || {},
         subChecklists: action.payload.subChecklists || {},
         taskCategories: action.payload.taskCategories || {}
@@ -138,6 +142,38 @@ function appReducer(state: AppState, action: AppAction): AppState {
       console.log('New state after load:', newState);
       console.log('fabricStates in new state:', newState.fabricStates);
       return newState;
+    
+    case 'UPDATE_TASK_COMPLETION_DATE':
+      const { taskId: completionTaskId, completionDate, fabricId: completionFabricId } = action.payload;
+      return {
+        ...state,
+        fabricCompletionDates: {
+          ...state.fabricCompletionDates,
+          [completionFabricId]: {
+            ...state.fabricCompletionDates[completionFabricId],
+            ...(completionDate 
+              ? { [completionTaskId]: completionDate }
+              : Object.fromEntries(
+                  Object.entries(state.fabricCompletionDates[completionFabricId] || {})
+                    .filter(([id]) => id !== completionTaskId)
+                )
+            )
+          }
+        }
+      };
+    
+    case 'UPDATE_NOTE_MODIFICATION_DATE':
+      const { taskId: modNoteTaskId, modificationDate, fabricId: modNoteFabricId } = action.payload;
+      return {
+        ...state,
+        fabricNoteModificationDates: {
+          ...state.fabricNoteModificationDates,
+          [modNoteFabricId]: {
+            ...state.fabricNoteModificationDates[modNoteFabricId],
+            [modNoteTaskId]: modificationDate
+          }
+        }
+      };
     
     default:
       return state;
@@ -275,18 +311,58 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (task.fabricSpecific || 
               (task.ndoCentralized && currentFabric.site === 'Tertiary') ||
               (!task.fabricSpecific && !task.ndoCentralized)) {
-            allTasks.push({
-              ...task,
-              checked: state.fabricStates[state.currentFabric]?.[task.id] || false,
-              notes: state.fabricNotes[state.currentFabric]?.[task.id] || '',
-              category: state.taskCategories[state.currentFabric]?.[task.id] || 'none'
-            });
+            const isCompleted = state.fabricStates[state.currentFabric]?.[task.id] || false;
+            if (!isCompleted) {
+              allTasks.push({
+                ...task,
+                checked: false,
+                notes: state.fabricNotes[state.currentFabric]?.[task.id] || '',
+                category: state.taskCategories[state.currentFabric]?.[task.id] || 'none'
+              });
+            }
           }
         });
       });
     });
 
     return allTasks;
+  };
+
+  const getCompletedTasks = (): Task[] => {
+    const allCompletedTasks: Task[] = [];
+    
+    state.fabrics.forEach(fabric => {
+      state.sections.forEach(section => {
+        section.subsections.forEach(subsection => {
+          subsection.tasks.forEach(task => {
+            if (task.fabricSpecific || 
+                (task.ndoCentralized && fabric.site === 'Tertiary') ||
+                (!task.fabricSpecific && !task.ndoCentralized)) {
+              const isCompleted = state.fabricStates[fabric.id]?.[task.id] || false;
+              if (isCompleted) {
+                allCompletedTasks.push({
+                  ...task,
+                  checked: true,
+                  notes: state.fabricNotes[fabric.id]?.[task.id] || '',
+                  category: state.taskCategories[fabric.id]?.[task.id] || 'none',
+                  fabricId: fabric.id,
+                  fabricName: fabric.name,
+                  completionDate: state.fabricCompletionDates[fabric.id]?.[task.id] || '',
+                  sectionTitle: section.title,
+                  subsectionTitle: subsection.title
+                });
+              }
+            }
+          });
+        });
+      });
+    });
+
+    return allCompletedTasks.sort((a, b) => {
+      const dateA = new Date(a.completionDate || '');
+      const dateB = new Date(b.completionDate || '');
+      return dateB.getTime() - dateA.getTime();
+    });
   };
 
   const getFabricProgress = (fabricId: string): FabricProgress => {
@@ -371,11 +447,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         type: 'UPDATE_TASK_STATE',
         payload: { taskId, checked, fabricId: targetFabricId }
       });
+
+      dispatch({
+        type: 'UPDATE_TASK_COMPLETION_DATE',
+        payload: { 
+          taskId, 
+          completionDate: checked ? new Date().toISOString() : null, 
+          fabricId: targetFabricId 
+        }
+      });
     } catch (error) {
       console.error('Error updating task state:', error);
       dispatch({
         type: 'UPDATE_TASK_STATE',
         payload: { taskId, checked, fabricId: targetFabricId }
+      });
+
+      dispatch({
+        type: 'UPDATE_TASK_COMPLETION_DATE',
+        payload: { 
+          taskId, 
+          completionDate: checked ? new Date().toISOString() : null, 
+          fabricId: targetFabricId 
+        }
       });
     }
   };
@@ -390,12 +484,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         type: 'UPDATE_TASK_NOTES',
         payload: { taskId, notes, fabricId: targetFabricId }
       });
+
+      if (notes.trim()) {
+        dispatch({
+          type: 'UPDATE_NOTE_MODIFICATION_DATE',
+          payload: { taskId, modificationDate: new Date().toISOString(), fabricId: targetFabricId }
+        });
+      }
     } catch (error) {
       console.error('Error updating task notes:', error);
       dispatch({
         type: 'UPDATE_TASK_NOTES',
         payload: { taskId, notes, fabricId: targetFabricId }
       });
+
+      if (notes.trim()) {
+        dispatch({
+          type: 'UPDATE_NOTE_MODIFICATION_DATE',
+          payload: { taskId, modificationDate: new Date().toISOString(), fabricId: targetFabricId }
+        });
+      }
     }
   };
 
@@ -439,6 +547,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           type: 'UPDATE_TASK_STATE',
           payload: { taskId, checked, fabricId: fabric.id }
         });
+        dispatch({
+          type: 'UPDATE_TASK_COMPLETION_DATE',
+          payload: { 
+            taskId, 
+            completionDate: checked ? new Date().toISOString() : null, 
+            fabricId: fabric.id 
+          }
+        });
       });
     } catch (error) {
       console.error('Error updating task state across selected fabrics:', error);
@@ -446,6 +562,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         dispatch({
           type: 'UPDATE_TASK_STATE',
           payload: { taskId, checked, fabricId: fabric.id }
+        });
+        dispatch({
+          type: 'UPDATE_TASK_COMPLETION_DATE',
+          payload: { 
+            taskId, 
+            completionDate: checked ? new Date().toISOString() : null, 
+            fabricId: fabric.id 
+          }
         });
       });
     }
@@ -646,6 +770,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     state,
     dispatch,
     getCurrentFabricTasks,
+    getCompletedTasks,
     getFabricProgress,
     updateTaskState,
     updateTaskStateAcrossSelectedFabrics,

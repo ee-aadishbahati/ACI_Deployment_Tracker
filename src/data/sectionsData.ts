@@ -153,6 +153,21 @@ export const sectionsData: Section[] = [
           createTaskWithTestCase("Update switch software to target version (if required)", true),
           createTaskWithTestCase("Verify switch control plane connectivity", true)
         ]
+      },
+      {
+        title: "Inter-Site Connectivity Validation",
+        tasks: [
+          createTaskWithTestCase("Validate inter-site APIC cluster communication", false),
+          createTaskWithTestCase("Verify TEP pool reachability between sites", false),
+          createTaskWithTestCase("Test control plane connectivity across sites", false),
+          createTaskWithTestCase("Validate inter-site spine connectivity", false),
+          createTaskWithTestCase("Verify border leaf inter-site links", true),
+          createTaskWithTestCase("Test inter-site multicast replication", false),
+          createTaskWithTestCase("Validate cross-site fabric discovery", false),
+          createTaskWithTestCase("Verify inter-site time synchronization", false),
+          createTaskWithTestCase("Test cross-site APIC database synchronization", false),
+          createTaskWithTestCase("Validate inter-site fabric health monitoring", false)
+        ]
       }
     ]
   },
@@ -189,6 +204,21 @@ export const sectionsData: Section[] = [
           createTaskWithTestCase("Configure NDO integration with external systems", false, true),
           createTaskWithTestCase("Test NDO failover and recovery procedures", false, true)
         ]
+      },
+      {
+        title: "Multi-Site Orchestrator Advanced Configuration",
+        tasks: [
+          createTaskWithTestCase("Configure multi-site policy orchestration", false, true),
+          createTaskWithTestCase("Set up cross-site automation workflows", false, true),
+          createTaskWithTestCase("Configure multi-site template management", false, true),
+          createTaskWithTestCase("Set up inter-site policy synchronization", false, true),
+          createTaskWithTestCase("Configure cross-site compliance monitoring", false, true),
+          createTaskWithTestCase("Set up multi-site change management", false, true),
+          createTaskWithTestCase("Configure cross-site inventory management", false, true),
+          createTaskWithTestCase("Set up multi-site performance monitoring", false, true),
+          createTaskWithTestCase("Configure inter-site event correlation", false, true),
+          createTaskWithTestCase("Validate multi-site orchestration functionality", false, true)
+        ]
       }
     ]
   },
@@ -210,6 +240,36 @@ export const sectionsData: Section[] = [
           createTaskWithTestCase("Create switch profiles for each site", true),
           createTaskWithTestCase("Configure border leaf switches for inter-site connectivity", true)
         ]
+      },
+      {
+        title: "Cross-Site EPG and Contract Replication",
+        tasks: [
+          createTaskWithTestCase("Configure cross-site EPG stretching", false),
+          createTaskWithTestCase("Set up inter-site bridge domain extension", false),
+          createTaskWithTestCase("Configure cross-site VRF stretching", false),
+          createTaskWithTestCase("Validate contract replication across sites", false),
+          createTaskWithTestCase("Set up cross-site application profiles", false),
+          createTaskWithTestCase("Configure inter-site endpoint mobility", false),
+          createTaskWithTestCase("Set up cross-site service graph deployment", false),
+          createTaskWithTestCase("Configure multi-site load balancing policies", false),
+          createTaskWithTestCase("Validate cross-site policy consistency", false),
+          createTaskWithTestCase("Test inter-site EPG communication", false)
+        ]
+      },
+      {
+        title: "Tenant and Application Migration",
+        tasks: [
+          createTaskWithTestCase("Plan tenant migration strategy between sites", false),
+          createTaskWithTestCase("Configure tenant migration between sites", false),
+          createTaskWithTestCase("Set up application profile migration", false),
+          createTaskWithTestCase("Configure EPG migration procedures", false),
+          createTaskWithTestCase("Validate application workload migration", false),
+          createTaskWithTestCase("Set up cross-site tenant backup and restore", false),
+          createTaskWithTestCase("Configure tenant isolation during migration", false),
+          createTaskWithTestCase("Test application connectivity post-migration", false),
+          createTaskWithTestCase("Validate tenant security policies post-migration", false),
+          createTaskWithTestCase("Document tenant migration procedures", false)
+        ]
       }
     ]
   },
@@ -230,6 +290,23 @@ export const sectionsData: Section[] = [
           createTaskWithTestCase("Configure external backup integration", true),
           createTaskWithTestCase("Test external system connectivity", true),
           createTaskWithTestCase("Verify external system functionality", true)
+        ]
+      },
+      {
+        title: "Site-to-Site L3Out and Transit Routing",
+        tasks: [
+          createTaskWithTestCase("Configure inter-site L3Out connectivity", true),
+          createTaskWithTestCase("Set up transit routing between sites", true),
+          createTaskWithTestCase("Configure transit routing for multi-site", false),
+          createTaskWithTestCase("Set up inter-site BGP peering", true),
+          createTaskWithTestCase("Configure cross-site route redistribution", false),
+          createTaskWithTestCase("Set up inter-site OSPF areas", true),
+          createTaskWithTestCase("Configure cross-site route filtering", false),
+          createTaskWithTestCase("Set up inter-site route summarization", false),
+          createTaskWithTestCase("Configure WAN integration for multi-site", true),
+          createTaskWithTestCase("Validate inter-site routing convergence", false),
+          createTaskWithTestCase("Test inter-site failover routing", false),
+          createTaskWithTestCase("Configure inter-site QoS for WAN links", true)
         ]
       }
     ]
@@ -267,12 +344,123 @@ export const sectionsData: Section[] = [
           createTaskWithTestCase("Test partial site failure and recovery", true),
           createTaskWithTestCase("Verify complete site failure and recovery", true)
         ]
+      },
+      {
+        title: "Multi-Site Disaster Recovery Testing",
+        tasks: [
+          createTaskWithTestCase("Test multi-site disaster recovery procedures", false),
+          createTaskWithTestCase("Validate site isolation and recovery", false),
+          createTaskWithTestCase("Test cross-site failover scenarios", false),
+          createTaskWithTestCase("Verify multi-site backup and restore procedures", false),
+          createTaskWithTestCase("Test inter-site workload migration during DR", false),
+          createTaskWithTestCase("Validate cross-site data replication", false),
+          createTaskWithTestCase("Test multi-site service continuity", false),
+          createTaskWithTestCase("Verify cross-site recovery time objectives", false),
+          createTaskWithTestCase("Test automated DR failover procedures", false),
+          createTaskWithTestCase("Validate multi-site DR communication procedures", false)
+        ]
+      },
+      {
+        title: "Cross-Site Security Policy Validation",
+        tasks: [
+          createTaskWithTestCase("Validate cross-site security policy enforcement", false),
+          createTaskWithTestCase("Test cross-site microsegmentation", false),
+          createTaskWithTestCase("Verify inter-site contract enforcement", false),
+          createTaskWithTestCase("Test cross-site firewall policy consistency", false),
+          createTaskWithTestCase("Validate multi-site security compliance", false),
+          createTaskWithTestCase("Test inter-site threat detection and response", false),
+          createTaskWithTestCase("Verify cross-site access control policies", false),
+          createTaskWithTestCase("Test multi-site security event correlation", false),
+          createTaskWithTestCase("Validate inter-site encryption policies", false),
+          createTaskWithTestCase("Test cross-site security audit procedures", false)
+        ]
+      },
+      {
+        title: "Performance Baseline Testing",
+        tasks: [
+          createTaskWithTestCase("Establish performance baselines across sites", false),
+          createTaskWithTestCase("Validate inter-site performance metrics", false),
+          createTaskWithTestCase("Test cross-site latency and throughput", false),
+          createTaskWithTestCase("Verify inter-site bandwidth utilization", false),
+          createTaskWithTestCase("Test multi-site application performance", false),
+          createTaskWithTestCase("Validate cross-site network convergence times", false),
+          createTaskWithTestCase("Test inter-site load balancing performance", false),
+          createTaskWithTestCase("Verify multi-site QoS effectiveness", false),
+          createTaskWithTestCase("Test cross-site scalability limits", false),
+          createTaskWithTestCase("Validate inter-site performance monitoring", false)
+        ]
       }
     ]
   },
   {
     id: "section8",
-    title: "8. Documentation & Handover",
+    title: "8. ACI Migration from Legacy Networks (Brownfield)",
+    subsections: [
+      {
+        title: "Migration Planning",
+        tasks: [
+          createTaskWithTestCase("Assess legacy network for ACI migration", false),
+          createTaskWithTestCase("Create detailed migration strategy and timeline", false),
+          createTaskWithTestCase("Identify migration dependencies and risks", false),
+          createTaskWithTestCase("Plan phased migration approach", false),
+          createTaskWithTestCase("Design coexistence architecture", false),
+          createTaskWithTestCase("Create migration rollback procedures", false),
+          createTaskWithTestCase("Plan migration testing and validation", false),
+          createTaskWithTestCase("Identify migration resource requirements", false),
+          createTaskWithTestCase("Create migration communication plan", false),
+          createTaskWithTestCase("Establish migration success criteria", false)
+        ]
+      },
+      {
+        title: "Legacy Network Assessment",
+        tasks: [
+          createTaskWithTestCase("Document existing network topology and configurations", false),
+          createTaskWithTestCase("Inventory legacy network devices and software versions", false),
+          createTaskWithTestCase("Analyze current network traffic patterns", false),
+          createTaskWithTestCase("Assess existing security policies and ACLs", false),
+          createTaskWithTestCase("Document current VLAN and routing configurations", false),
+          createTaskWithTestCase("Identify legacy network dependencies", false),
+          createTaskWithTestCase("Assess current monitoring and management tools", false),
+          createTaskWithTestCase("Document existing network performance baselines", false),
+          createTaskWithTestCase("Identify potential migration challenges", false),
+          createTaskWithTestCase("Create legacy network decommission plan", false)
+        ]
+      },
+      {
+        title: "Phased Migration Execution",
+        tasks: [
+          createTaskWithTestCase("Execute phased brownfield migration", false),
+          createTaskWithTestCase("Migrate edge network segments to ACI", true),
+          createTaskWithTestCase("Integrate legacy core with ACI fabric", false),
+          createTaskWithTestCase("Migrate server workloads to ACI", true),
+          createTaskWithTestCase("Transition network services to ACI", false),
+          createTaskWithTestCase("Migrate security policies to ACI contracts", false),
+          createTaskWithTestCase("Transition monitoring and management to ACI", false),
+          createTaskWithTestCase("Decommission legacy network components", true),
+          createTaskWithTestCase("Validate migration phase completion", false),
+          createTaskWithTestCase("Update network documentation post-migration", false)
+        ]
+      },
+      {
+        title: "Migration Validation",
+        tasks: [
+          createTaskWithTestCase("Validate migrated workload connectivity", false),
+          createTaskWithTestCase("Test migrated application performance", false),
+          createTaskWithTestCase("Verify migrated security policy enforcement", false),
+          createTaskWithTestCase("Validate migrated network services functionality", false),
+          createTaskWithTestCase("Test migrated monitoring and alerting", false),
+          createTaskWithTestCase("Verify migrated backup and recovery procedures", false),
+          createTaskWithTestCase("Validate migrated compliance requirements", false),
+          createTaskWithTestCase("Test migrated disaster recovery procedures", false),
+          createTaskWithTestCase("Verify migration rollback procedures", false),
+          createTaskWithTestCase("Document migration lessons learned", false)
+        ]
+      }
+    ]
+  },
+  {
+    id: "section9",
+    title: "9. Documentation & Handover",
     subsections: [
       {
         title: "Documentation",
@@ -287,6 +475,21 @@ export const sectionsData: Section[] = [
           createTaskWithTestCase("Document security policies and procedures", false),
           createTaskWithTestCase("Create change management procedures", false),
           createTaskWithTestCase("Document maintenance procedures", false)
+        ]
+      },
+      {
+        title: "Multi-Site Monitoring and Troubleshooting Procedures",
+        tasks: [
+          createTaskWithTestCase("Configure multi-site monitoring integration", false),
+          createTaskWithTestCase("Create multi-site troubleshooting procedures", false),
+          createTaskWithTestCase("Document inter-site connectivity troubleshooting", false),
+          createTaskWithTestCase("Create cross-site performance monitoring procedures", false),
+          createTaskWithTestCase("Document multi-site security monitoring procedures", false),
+          createTaskWithTestCase("Create inter-site fault isolation procedures", false),
+          createTaskWithTestCase("Document cross-site capacity planning procedures", false),
+          createTaskWithTestCase("Create multi-site change management procedures", false),
+          createTaskWithTestCase("Document inter-site maintenance coordination", false),
+          createTaskWithTestCase("Create cross-site escalation procedures", false)
         ]
       },
       {

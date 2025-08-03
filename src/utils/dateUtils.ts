@@ -3,32 +3,34 @@ export interface WeekPeriod {
   end: Date;
 }
 
-export function getCurrentTuesdayWeek(): WeekPeriod {
+export function getCurrentWednesdayWeek(): WeekPeriod {
   const now = new Date();
-  const currentDay = now.getDay();
+  const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
   
-  let daysToLastTuesday = currentDay - 2;
-  if (daysToLastTuesday < 0) {
-    daysToLastTuesday += 7;
+  let daysToLastWednesday;
+  if (currentDay >= 3) {
+    daysToLastWednesday = currentDay - 3;
+  } else {
+    daysToLastWednesday = currentDay + 4; // (7 - 3) + currentDay
   }
   
-  const lastTuesday = new Date(now);
-  lastTuesday.setDate(now.getDate() - daysToLastTuesday);
-  lastTuesday.setHours(0, 0, 0, 0);
+  const lastWednesday = new Date(now);
+  lastWednesday.setDate(now.getDate() - daysToLastWednesday);
+  lastWednesday.setHours(0, 0, 0, 0);
   
-  const nextMonday = new Date(lastTuesday);
-  nextMonday.setDate(lastTuesday.getDate() + 6);
-  nextMonday.setHours(23, 59, 59, 999);
+  const nextTuesday = new Date(lastWednesday);
+  nextTuesday.setDate(lastWednesday.getDate() + 6);
+  nextTuesday.setHours(23, 59, 59, 999);
   
   return {
-    start: lastTuesday,
-    end: nextMonday
+    start: lastWednesday,
+    end: nextTuesday
   };
 }
 
 export function isDateInCurrentWeek(dateString: string): boolean {
   const date = new Date(dateString);
-  const currentWeek = getCurrentTuesdayWeek();
+  const currentWeek = getCurrentWednesdayWeek();
   
   return date >= currentWeek.start && date <= currentWeek.end;
 }
@@ -48,7 +50,7 @@ export function formatCompletionDate(dateString: string): string {
 }
 
 export function formatWeekRange(): string {
-  const week = getCurrentTuesdayWeek();
+  const week = getCurrentWednesdayWeek();
   const startFormatted = formatCompletionDate(week.start.toISOString());
   const endFormatted = formatCompletionDate(week.end.toISOString());
   

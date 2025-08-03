@@ -114,7 +114,8 @@ function AppContent() {
           testCaseStates: {},
           subChecklists: {},
           taskCategories: {},
-          currentFabric: null,
+          currentFabric: 'north-it',
+          searchQuery: '',
           lastSaved: null
         };
         

@@ -23,7 +23,17 @@ export const useWebSocket = ({
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
+  const IS_PRODUCTION = (import.meta as any).env.MODE === 'production' || 
+                       (import.meta as any).env.PROD === true ||
+                       window.location.protocol === 'https:';
+
   const connect = () => {
+    if (IS_PRODUCTION) {
+      console.log('Production mode: WebSocket connection disabled');
+      setIsConnected(false);
+      return;
+    }
+
     try {
       const apiUrl = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000';
       const wsUrl = apiUrl.replace('http', 'ws') + '/ws';

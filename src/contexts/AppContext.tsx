@@ -138,7 +138,11 @@ function appReducer(state: AppState, action: AppAction): AppState {
         taskCategories: action.payload.taskCategories || {}
       };
       
-      const newState = { ...state, ...validatedPayload };
+      const newState = { 
+        ...state, 
+        ...validatedPayload,
+        sections: action.payload.sections || state.sections
+      };
       console.log('New state after load:', newState);
       console.log('fabricStates in new state:', newState.fabricStates);
       return newState;
@@ -245,7 +249,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           try {
             const parsedData = JSON.parse(savedData);
             console.log('6. Parsed localStorage data:', parsedData);
+            console.log('6a. Does localStorage have sections data?', parsedData.hasOwnProperty('sections'));
+            console.log('6b. Current state.sections before dispatch:', state.sections?.length);
             dispatch({ type: 'LOAD_DATA', payload: parsedData });
+            console.log('6c. Sections data preserved after LOAD_DATA:', state.sections?.length);
           } catch (parseError) {
             console.error('Error parsing localStorage data:', parseError);
           }

@@ -24,8 +24,7 @@ export const useWebSocket = ({
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const IS_PRODUCTION = (import.meta as any).env.MODE === 'production' || 
-                       (import.meta as any).env.PROD === true ||
-                       window.location.protocol === 'https:';
+                       (import.meta as any).env.PROD === true;
 
   const connect = () => {
     if (IS_PRODUCTION) {

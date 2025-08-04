@@ -9,7 +9,11 @@ app = FastAPI(title="ACI Deployment Tracker Backend", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Add production URL later
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://localhost:3000",
+        "https://ee-aadishbahati.github.io"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

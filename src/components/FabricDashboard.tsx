@@ -6,6 +6,21 @@ import { BurndownChart } from './BurndownChart';
 export function FabricDashboard() {
   const { state, getFabricProgress } = useApp();
 
+  if (state.isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white shadow-lg rounded-lg p-6">
+          <div className="flex items-center justify-center h-32">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+              <p className="text-gray-600">Loading task data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const getAllProgress = () => {
     return state.fabrics.map(fabric => ({
       fabric,

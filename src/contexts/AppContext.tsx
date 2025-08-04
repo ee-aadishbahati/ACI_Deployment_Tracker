@@ -17,7 +17,8 @@ const initialState: AppState = {
   fabricCompletionDates: {},
   fabricNoteModificationDates: {},
   testCaseStates: {},
-  taskCategories: {}
+  taskCategories: {},
+  isLoading: true
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -145,6 +146,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
       console.log('New state after load:', newState);
       console.log('fabricStates in new state:', newState.fabricStates);
+      console.log('fabricStates keys:', Object.keys(newState.fabricStates || {}));
+      console.log('Sample fabricState for north-it:', newState.fabricStates?.['north-it']);
       return newState;
     
     case 'UPDATE_TASK_COMPLETION_DATE':
@@ -178,6 +181,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
           }
         }
       };
+    
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
     
     default:
       return state;
@@ -224,43 +230,70 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    console.log('=== API DATA RESTORATION DEBUG ===');
+    console.log('=== HYBRID API DATA LOADING DEBUG ===');
     const loadData = async () => {
       try {
+        dispatch({ type: 'SET_LOADING', payload: true });
+        
         const data = await apiService.getAllData();
         console.log('1. Data loaded from API:', data);
         console.log('2. fabricStates from API:', data.fabricStates);
-        console.log('3. Dispatching LOAD_DATA with payload:', data);
-        dispatch({ type: 'LOAD_DATA', payload: {
-          fabricStates: data.fabricStates,
-          fabricNotes: data.fabricNotes,
-          testCaseStates: data.testCaseStates,
-          subChecklists: data.subChecklists,
-          taskCategories: data.taskCategories as any,
-          currentFabric: data.currentFabric || undefined
-        } });
-        console.log('4. LOAD_DATA dispatch completed');
+        
+        const hasInitializedData = Object.keys(data.fabricStates).length > 0;
+        console.log('3. Backend has initialized data:', hasInitializedData);
+        
+        let finalData;
+        
+        if (!hasInitializedData) {
+          console.log('4. Backend not initialized, sending frontend data to initialize');
+          const initializationData = {
+            fabrics: state.fabrics,
+            sections: state.sections
+          };
+          
+          finalData = await apiService.initializeBackend(initializationData);
+          console.log('5. Backend initialized with data:', finalData);
+          console.log('6. fabricStates after initialization:', finalData.fabricStates);
+        } else {
+          console.log('4. Using existing backend data');
+          finalData = data;
+        }
+        
+        const newState = {
+          fabricStates: finalData.fabricStates,
+          fabricNotes: finalData.fabricNotes,
+          testCaseStates: finalData.testCaseStates,
+          subChecklists: finalData.subChecklists,
+          taskCategories: finalData.taskCategories as any,
+          currentFabric: finalData.currentFabric || undefined
+        };
+        
+        console.log('7. Dispatching LOAD_DATA with payload:', newState);
+        dispatch({ type: 'LOAD_DATA', payload: newState });
+        
+        setTimeout(() => {
+          dispatch({ type: 'SET_LOADING', payload: false });
+          console.log('8. Loading state set to false');
+        }, 100); // Small delay to ensure state update is processed
       } catch (error) {
-        console.error('Error loading data from API:', error);
-        console.log('5. Falling back to localStorage');
+        console.error('Error loading/initializing data from API:', error);
+        console.log('9. Falling back to localStorage');
         
         const savedData = localStorage.getItem('aci-deployment-tracker-data');
         if (savedData) {
           try {
             const parsedData = JSON.parse(savedData);
-            console.log('6. Parsed localStorage data:', parsedData);
-            console.log('6a. Does localStorage have sections data?', parsedData.hasOwnProperty('sections'));
-            console.log('6b. Current state.sections before dispatch:', state.sections?.length);
+            console.log('10. Parsed localStorage data:', parsedData);
             dispatch({ type: 'LOAD_DATA', payload: parsedData });
-            console.log('6c. Sections data preserved after LOAD_DATA:', state.sections?.length);
           } catch (parseError) {
             console.error('Error parsing localStorage data:', parseError);
           }
         }
+        dispatch({ type: 'SET_LOADING', payload: false });
       }
       
       setHasLoadedFromStorage(true);
-      console.log('7. Initial load completed, enabling saves');
+      console.log('11. Initial load completed, enabling saves');
     };
     
     loadData();
@@ -410,8 +443,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getFabricProgress = (fabricId: string): FabricProgress => {
+    console.log('=== GET FABRIC PROGRESS DEBUG ===');
+    console.log('1. fabricId:', fabricId);
+    console.log('2. state.fabricStates:', state.fabricStates);
+    console.log('3. state.isLoading:', state.isLoading);
+    
+    if (state.isLoading || !state.fabricStates || Object.keys(state.fabricStates).length === 0) {
+      console.log('4. Data is still loading or fabricStates is empty, returning default values');
+      return {
+        fabricId,
+        totalTasks: 0,
+        completedTasks: 0,
+        totalTestCases: 0,
+        completedTestCases: 0,
+        highPriorityPending: 0,
+        criticalIssues: 0
+      };
+    }
+    
+    console.log('4. state.fabricStates[fabricId]:', state.fabricStates[fabricId]);
+    console.log('5. state.sections length:', state.sections.length);
+    
     const fabric = state.fabrics.find(f => f.id === fabricId);
     if (!fabric) {
+      console.log('6. Fabric not found for fabricId:', fabricId);
       return {
         fabricId,
         totalTasks: 0,
@@ -436,7 +491,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               (task.ndoCentralized && fabric.site === 'Tertiary') ||
               (!task.fabricSpecific && !task.ndoCentralized)) {
             totalTasks++;
-            if (state.fabricStates[fabricId]?.[task.id]) {
+            const isCompleted = state.fabricStates[fabricId]?.[task.id];
+            if (isCompleted) {
               completedTasks++;
             }
             
@@ -453,6 +509,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         });
       });
+    });
+
+    console.log('6. Final counts for', fabricId, ':', {
+      totalTasks,
+      completedTasks,
+      totalTestCases,
+      completedTestCases,
+      highPriorityPending
     });
 
     return {

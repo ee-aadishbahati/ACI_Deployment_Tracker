@@ -70,5 +70,37 @@ class InMemoryDatabase:
             self._data.currentFabric = fabric_id
             self._data.lastSaved = datetime.now()
             return self._data.model_copy(deep=True)
+    
+    def initialize_with_frontend_data(self, frontend_data: dict) -> AppData:
+        """Initialize backend with task structure from frontend"""
+        with self._lock:
+            fabrics = frontend_data.get('fabrics', [])
+            sections = frontend_data.get('sections', [])
+            
+            for fabric in fabrics:
+                fabric_id = fabric.get('id')
+                if fabric_id and fabric_id not in self._data.fabricStates:
+                    self._data.fabricStates[fabric_id] = {}
+                    self._data.fabricNotes[fabric_id] = {}
+                    self._data.taskCategories[fabric_id] = {}
+            
+            for section in sections:
+                section_id = section.get('id')
+                if section_id:
+                    for subsection in section.get('subsections', []):
+                        for task in subsection.get('tasks', []):
+                            task_id = task.get('id')
+                            if task_id:
+                                for fabric in fabrics:
+                                    fabric_id = fabric.get('id')
+                                    if fabric_id:
+                                        if task_id not in self._data.fabricStates[fabric_id]:
+                                            self._data.fabricStates[fabric_id][task_id] = False
+            
+            if not self._data.currentFabric and fabrics:
+                self._data.currentFabric = fabrics[0].get('id')
+            
+            self._data.lastSaved = datetime.now()
+            return self._data.model_copy(deep=True)
 
 db = InMemoryDatabase()

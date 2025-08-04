@@ -69,6 +69,11 @@ async def set_current_fabric(fabric_id: str):
     """Set current fabric"""
     return db.set_current_fabric(fabric_id)
 
+@app.post("/api/initialize", response_model=AppData)
+async def initialize_backend_data(initialization_data: dict):
+    """Initialize backend with task structure from frontend"""
+    return db.initialize_with_frontend_data(initialization_data)
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time updates"""

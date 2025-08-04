@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState, useRef } from 'react';
 import { AppState, Task, SubChecklist, FabricProgress, TaskCategory, DependencyStatus, AppContextType, AppAction, Subsection } from '../types';
 import { fabricsData } from '../data/fabricsData';
 import { sectionsData } from '../data/sectionsData';
@@ -305,6 +305,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error saving to localStorage:', error);
     }
+  }, [hasLoadedFromStorage, state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.taskCategories, state.currentFabric]);
+
+  const lastSavedStateRef = useRef<string>('');
+  
+  useEffect(() => {
+    if (!hasLoadedFromStorage) return;
+    
+    const autoSaveInterval = setInterval(async () => {
+      const currentStateData = {
+        fabricStates: state.fabricStates,
+        fabricNotes: state.fabricNotes,
+        testCaseStates: state.testCaseStates,
+        subChecklists: state.subChecklists,
+        taskCategories: state.taskCategories,
+        currentFabric: state.currentFabric
+      };
+      
+      const currentStateString = JSON.stringify(currentStateData);
+      
+      if (currentStateString !== lastSavedStateRef.current) {
+        try {
+          const dataToSave = {
+            ...currentStateData,
+            lastSaved: new Date().toISOString()
+          };
+          
+          console.log('Auto-saving changes to backend (15s interval)');
+          await apiService.updateAllData(dataToSave);
+          lastSavedStateRef.current = currentStateString;
+          console.log('Auto-save to backend completed successfully');
+        } catch (error) {
+          console.error('Auto-save to backend failed:', error);
+        }
+      }
+    }, 15000); // 15 seconds
+    
+    return () => clearInterval(autoSaveInterval);
   }, [hasLoadedFromStorage, state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.taskCategories, state.currentFabric]);
 
   const getCurrentFabricTasks = (): Task[] => {

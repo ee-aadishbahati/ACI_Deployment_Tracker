@@ -2,8 +2,10 @@ import { Task, Subsection } from '../types';
 
 const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000';
 const IS_PRODUCTION = (import.meta as any).env.MODE === 'production' || 
-                     (import.meta as any).env.PROD === true ||
-                     window.location.protocol === 'https:';
+                     (import.meta as any).env.PROD === true;
+
+const HAS_CUSTOM_API_URL = (import.meta as any).env.VITE_API_URL && 
+                          (import.meta as any).env.VITE_API_URL !== 'http://localhost:8000';
 
 export interface AppData {
   fabricStates: Record<string, Record<string, boolean>>;
@@ -17,8 +19,8 @@ export interface AppData {
 
 class ApiService {
   private async makeRequest(url: string, options?: RequestInit): Promise<Response | null> {
-    if (IS_PRODUCTION) {
-      console.log('Production mode: Skipping API call to', url);
+    if (IS_PRODUCTION && !HAS_CUSTOM_API_URL) {
+      console.log('Production mode: Skipping API call to', url, '(no custom API URL)');
       return null;
     }
     

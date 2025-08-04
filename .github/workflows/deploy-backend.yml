@@ -18,6 +18,7 @@ jobs:
       - uses: superfly/flyctl-actions/setup-flyctl@master
       
       - name: Deploy to Fly.io
-        run: flyctl deploy --remote-only --config aci-tracker-backend/fly.toml
+        run: flyctl deploy --remote-only --config fly.toml
+        working-directory: aci-tracker-backend
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

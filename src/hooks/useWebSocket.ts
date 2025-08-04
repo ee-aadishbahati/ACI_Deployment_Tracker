@@ -25,10 +25,13 @@ export const useWebSocket = ({
 
   const IS_PRODUCTION = (import.meta as any).env.MODE === 'production' || 
                        (import.meta as any).env.PROD === true;
+  
+  const HAS_CUSTOM_API_URL = (import.meta as any).env.VITE_API_URL && 
+                            (import.meta as any).env.VITE_API_URL !== 'http://localhost:8000';
 
   const connect = () => {
-    if (IS_PRODUCTION) {
-      console.log('Production mode: WebSocket connection disabled');
+    if (IS_PRODUCTION && !HAS_CUSTOM_API_URL) {
+      console.log('Production mode: WebSocket connection disabled (no custom API URL)');
       setIsConnected(false);
       return;
     }

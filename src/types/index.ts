@@ -106,6 +106,7 @@ export interface AppState {
   fabricNoteModificationDates: { [fabricId: string]: { [taskId: string]: string } };
   testCaseStates: { [fabricId: string]: { [tcId: string]: TestCase } };
   taskCategories: { [fabricId: string]: { [taskId: string]: TaskCategory } };
+  isLoading: boolean;
 }
 
 export type AppAction = 
@@ -121,7 +122,8 @@ export type AppAction =
   | { type: 'SAVE_SUB_CHECKLIST'; payload: { name: string; checklist: SubChecklist } }
   | { type: 'DELETE_SUB_CHECKLIST'; payload: string }
   | { type: 'LOAD_DATA'; payload: Partial<AppState> }
-  | { type: 'TOGGLE_SECTION'; payload: string };
+  | { type: 'TOGGLE_SECTION'; payload: string }
+  | { type: 'SET_LOADING'; payload: boolean };
 
 export interface NotificationProps {
   message: string;

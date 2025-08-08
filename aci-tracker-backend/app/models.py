@@ -26,6 +26,8 @@ class AppData(BaseModel):
     """Complete application data structure matching localStorage format"""
     fabricStates: Dict[str, Dict[str, bool]] = {}
     fabricNotes: Dict[str, Dict[str, str]] = {}
+    fabricCompletionDates: Dict[str, Dict[str, str]] = {}
+    fabricNoteModificationDates: Dict[str, Dict[str, str]] = {}
     testCaseStates: Dict[str, Dict[str, Any]] = {}
     taskCategories: Dict[str, Dict[str, str]] = {}
     subChecklists: Dict[str, Any] = {}

@@ -262,6 +262,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const newState = {
           fabricStates: finalData.fabricStates,
           fabricNotes: finalData.fabricNotes,
+          fabricCompletionDates: finalData.fabricCompletionDates,
+          fabricNoteModificationDates: finalData.fabricNoteModificationDates,
           testCaseStates: finalData.testCaseStates,
           subChecklists: finalData.subChecklists,
           taskCategories: finalData.taskCategories as any,
@@ -313,6 +315,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const dataToSave = {
       fabricStates: state.fabricStates,
       fabricNotes: state.fabricNotes,
+      fabricCompletionDates: state.fabricCompletionDates,
+      fabricNoteModificationDates: state.fabricNoteModificationDates,
       testCaseStates: state.testCaseStates,
       subChecklists: state.subChecklists,
       taskCategories: state.taskCategories,
@@ -338,7 +342,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error saving to localStorage:', error);
     }
-  }, [hasLoadedFromStorage, state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.taskCategories, state.currentFabric]);
+  }, [hasLoadedFromStorage, state.fabricStates, state.fabricNotes, state.fabricCompletionDates, state.fabricNoteModificationDates, state.testCaseStates, state.subChecklists, state.taskCategories, state.currentFabric]);
 
   const lastSavedStateRef = useRef<string>('');
   
@@ -349,6 +353,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const currentStateData = {
         fabricStates: state.fabricStates,
         fabricNotes: state.fabricNotes,
+        fabricCompletionDates: state.fabricCompletionDates,
+        fabricNoteModificationDates: state.fabricNoteModificationDates,
         testCaseStates: state.testCaseStates,
         subChecklists: state.subChecklists,
         taskCategories: state.taskCategories,
@@ -375,7 +381,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }, 15000); // 15 seconds
     
     return () => clearInterval(autoSaveInterval);
-  }, [hasLoadedFromStorage, state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.taskCategories, state.currentFabric]);
+  }, [hasLoadedFromStorage, state.fabricStates, state.fabricNotes, state.fabricCompletionDates, state.fabricNoteModificationDates, state.testCaseStates, state.subChecklists, state.taskCategories, state.currentFabric]);
 
   const getCurrentFabricTasks = (): Task[] => {
     const currentFabric = state.fabrics.find(f => f.id === state.currentFabric);

@@ -82,6 +82,8 @@ class InMemoryDatabase:
                 if fabric_id and fabric_id not in self._data.fabricStates:
                     self._data.fabricStates[fabric_id] = {}
                     self._data.fabricNotes[fabric_id] = {}
+                    self._data.fabricCompletionDates[fabric_id] = {}
+                    self._data.fabricNoteModificationDates[fabric_id] = {}
                     self._data.taskCategories[fabric_id] = {}
             
             for section in sections:

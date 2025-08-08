@@ -86,6 +86,8 @@ function AppContent() {
             const dataToImport = {
               fabricStates: importedData.fabricStates || {},
               fabricNotes: importedData.fabricNotes || {},
+              fabricCompletionDates: importedData.fabricCompletionDates || {},
+              fabricNoteModificationDates: importedData.fabricNoteModificationDates || {},
               testCaseStates: importedData.testCaseStates || {},
               subChecklists: importedData.subChecklists || {},
               taskCategories: importedData.taskCategories || {},
@@ -117,6 +119,8 @@ function AppContent() {
         const resetData = {
           fabricStates: {},
           fabricNotes: {},
+          fabricCompletionDates: {},
+          fabricNoteModificationDates: {},
           testCaseStates: {},
           subChecklists: {},
           taskCategories: {},

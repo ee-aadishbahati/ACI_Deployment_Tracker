@@ -8,6 +8,8 @@ const HAS_CUSTOM_API_URL = !!(import.meta as any).env.VITE_API_URL;
 export interface AppData {
   fabricStates: Record<string, Record<string, boolean>>;
   fabricNotes: Record<string, Record<string, string>>;
+  fabricCompletionDates: Record<string, Record<string, string>>;
+  fabricNoteModificationDates: Record<string, Record<string, string>>;
   testCaseStates: Record<string, Record<string, any>>;
   taskCategories: Record<string, Record<string, string>>;
   subChecklists: Record<string, any>;

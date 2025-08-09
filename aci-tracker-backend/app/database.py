@@ -72,10 +72,55 @@ class InMemoryDatabase:
             return self._data.model_copy(deep=True)
     
     def initialize_with_frontend_data(self, frontend_data: dict) -> AppData:
-        """Initialize backend with task structure from frontend"""
+        """Initialize backend with task structure from frontend, preserving existing data"""
         with self._lock:
             fabrics = frontend_data.get('fabrics', [])
             sections = frontend_data.get('sections', [])
+            existing_data = frontend_data.get('existingData', {})
+            
+            if existing_data:
+                print('Merging existing localStorage data into backend')
+                if existing_data.get('fabricStates'):
+                    for fabric_id, fabric_states in existing_data['fabricStates'].items():
+                        if fabric_id not in self._data.fabricStates:
+                            self._data.fabricStates[fabric_id] = {}
+                        self._data.fabricStates[fabric_id].update(fabric_states)
+                
+                if existing_data.get('fabricNotes'):
+                    for fabric_id, fabric_notes in existing_data['fabricNotes'].items():
+                        if fabric_id not in self._data.fabricNotes:
+                            self._data.fabricNotes[fabric_id] = {}
+                        self._data.fabricNotes[fabric_id].update(fabric_notes)
+                
+                if existing_data.get('fabricCompletionDates'):
+                    for fabric_id, completion_dates in existing_data['fabricCompletionDates'].items():
+                        if fabric_id not in self._data.fabricCompletionDates:
+                            self._data.fabricCompletionDates[fabric_id] = {}
+                        self._data.fabricCompletionDates[fabric_id].update(completion_dates)
+                
+                if existing_data.get('fabricNoteModificationDates'):
+                    for fabric_id, mod_dates in existing_data['fabricNoteModificationDates'].items():
+                        if fabric_id not in self._data.fabricNoteModificationDates:
+                            self._data.fabricNoteModificationDates[fabric_id] = {}
+                        self._data.fabricNoteModificationDates[fabric_id].update(mod_dates)
+                
+                if existing_data.get('taskCategories'):
+                    for fabric_id, categories in existing_data['taskCategories'].items():
+                        if fabric_id not in self._data.taskCategories:
+                            self._data.taskCategories[fabric_id] = {}
+                        self._data.taskCategories[fabric_id].update(categories)
+                
+                if existing_data.get('testCaseStates'):
+                    for fabric_id, test_states in existing_data['testCaseStates'].items():
+                        if fabric_id not in self._data.testCaseStates:
+                            self._data.testCaseStates[fabric_id] = {}
+                        self._data.testCaseStates[fabric_id].update(test_states)
+                
+                if existing_data.get('subChecklists'):
+                    self._data.subChecklists.update(existing_data['subChecklists'])
+                
+                if existing_data.get('currentFabric'):
+                    self._data.currentFabric = existing_data['currentFabric']
             
             for fabric in fabrics:
                 fabric_id = fabric.get('id')

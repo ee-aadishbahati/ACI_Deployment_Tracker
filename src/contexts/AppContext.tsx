@@ -245,10 +245,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         let finalData;
         
         if (!hasInitializedData) {
-          console.log('4. Backend not initialized, sending frontend data to initialize');
+          console.log('4. Backend not initialized, checking localStorage for existing data');
+          
+          const savedData = localStorage.getItem('aci-deployment-tracker-data');
+          let existingData = null;
+          if (savedData) {
+            try {
+              existingData = JSON.parse(savedData);
+              console.log('4a. Found existing localStorage data to preserve:', existingData);
+            } catch (parseError) {
+              console.error('Error parsing existing localStorage data:', parseError);
+            }
+          }
+          
           const initializationData = {
             fabrics: state.fabrics,
-            sections: state.sections
+            sections: state.sections,
+            existingData: existingData
           };
           
           finalData = await apiService.initializeBackend(initializationData);

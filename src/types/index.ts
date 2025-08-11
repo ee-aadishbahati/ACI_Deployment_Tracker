@@ -53,6 +53,9 @@ export interface Task {
   sectionTitle?: string;
   subsectionTitle?: string;
   noteModificationDate?: string;
+  kanbanStatus?: 'todo' | 'in-progress' | 'testing' | 'complete';
+  dueDate?: string;
+  assignedTo?: string;
 }
 
 export interface Subsection {
@@ -106,6 +109,7 @@ export interface AppState {
   fabricNoteModificationDates: { [fabricId: string]: { [taskId: string]: string } };
   testCaseStates: { [fabricId: string]: { [tcId: string]: TestCase } };
   taskCategories: { [fabricId: string]: { [taskId: string]: TaskCategory } };
+  taskKanbanStatus: { [fabricId: string]: { [taskId: string]: string } };
   isLoading: boolean;
 }
 
@@ -117,6 +121,7 @@ export type AppAction =
   | { type: 'UPDATE_TASK_CATEGORY'; payload: { taskId: string; category: TaskCategory; fabricId: string } }
   | { type: 'UPDATE_TASK_COMPLETION_DATE'; payload: { taskId: string; completionDate: string | null; fabricId: string } }
   | { type: 'UPDATE_NOTE_MODIFICATION_DATE'; payload: { taskId: string; modificationDate: string; fabricId: string } }
+  | { type: 'UPDATE_TASK_KANBAN_STATUS'; payload: { taskId: string; kanbanStatus: string; fabricId: string } }
   | { type: 'ADD_TASK'; payload: { sectionId: string; subsectionTitle: string; task: Task } }
   | { type: 'ADD_SUBSECTION'; payload: { sectionId: string; subsection: Subsection } }
   | { type: 'SAVE_SUB_CHECKLIST'; payload: { name: string; checklist: SubChecklist } }
@@ -171,6 +176,7 @@ export interface AppContextType {
   updateTaskCategory: (taskId: string, category: TaskCategory, fabricId?: string) => Promise<void>;
   updateTaskCategoryAcrossSelectedFabrics: (taskId: string, category: TaskCategory, fabricIds: string[]) => Promise<void>;
   updateTaskCategoryAcrossAllFabrics: (taskId: string, category: TaskCategory) => Promise<void>;
+  updateTaskKanbanStatus: (taskId: string, kanbanStatus: string, fabricId?: string) => Promise<void>;
   addTask: (sectionId: string, subsectionTitle: string, taskData: { text: string; fabricSpecific: boolean; ndoCentralized: boolean; testCaseId?: string }) => Promise<void>;
   addSubsection: (sectionId: string, subsectionTitle: string) => Promise<void>;
   setCurrentFabric: (fabricId: string) => void;

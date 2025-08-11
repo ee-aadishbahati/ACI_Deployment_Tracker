@@ -12,6 +12,7 @@ import { BulkOperations } from './components/BulkOperations';
 import { ThemeToggle } from './components/ThemeToggle';
 import { TaskCreator } from './components/TaskCreator';
 import { CompletedTasks } from './components/CompletedTasks';
+import { KanbanBoard } from './components/KanbanBoard';
 import { useApp } from './contexts/AppContext';
 import { apiService } from './services/api';
 import { 
@@ -26,12 +27,13 @@ import {
   Star,
   Users,
   Plus,
-  CheckCircle2
+  CheckCircle2,
+  Columns
 } from 'lucide-react';
 
 function AppContent() {
   const { state, dispatch, setSearchQuery } = useApp();
-  const [activeView, setActiveView] = useState<'dashboard' | 'tasks' | 'priorities' | 'create-task' | 'completed-tasks'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'tasks' | 'kanban' | 'priorities' | 'create-task' | 'completed-tasks'>('dashboard');
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [bulkMode, setBulkMode] = useState(false);
   
@@ -273,6 +275,17 @@ function AppContent() {
                   <span>Tasks</span>
                 </button>
                 <button
+                  onClick={() => setActiveView('kanban')}
+                  className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    activeView === 'kanban'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <Columns size={16} />
+                  <span>Kanban</span>
+                </button>
+                <button
                   onClick={() => setActiveView('priorities')}
                   className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     activeView === 'priorities'
@@ -390,6 +403,8 @@ function AppContent() {
 
         {activeView === 'dashboard' ? (
           <FabricDashboard />
+        ) : activeView === 'kanban' ? (
+          <KanbanBoard />
         ) : activeView === 'priorities' ? (
           <PriorityCategories />
         ) : activeView === 'create-task' ? (

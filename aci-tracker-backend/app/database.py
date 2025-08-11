@@ -64,6 +64,21 @@ class InMemoryDatabase:
             self._data.lastSaved = datetime.now()
             return self._data.model_copy(deep=True)
     
+    def update_task_kanban_status(self, fabric_id: str, task_id: str, kanban_status: str) -> AppData:
+        """Update task kanban status"""
+        with self._lock:
+            if fabric_id not in self._data.taskKanbanStatus:
+                self._data.taskKanbanStatus[fabric_id] = {}
+            
+            if kanban_status and kanban_status != "todo":
+                self._data.taskKanbanStatus[fabric_id][task_id] = kanban_status
+            else:
+                self._data.taskKanbanStatus[fabric_id].pop(task_id, None)
+            
+            print(f'Database: Updated kanban status for task {task_id} in fabric {fabric_id} to {kanban_status}')
+            self._data.lastSaved = datetime.now()
+            return self._data.model_copy(deep=True)
+    
     def set_current_fabric(self, fabric_id: str) -> AppData:
         """Set current fabric"""
         with self._lock:
@@ -110,6 +125,13 @@ class InMemoryDatabase:
                             self._data.taskCategories[fabric_id] = {}
                         self._data.taskCategories[fabric_id].update(categories)
                 
+                if existing_data.get('taskKanbanStatus'):
+                    for fabric_id, kanban_statuses in existing_data['taskKanbanStatus'].items():
+                        if fabric_id not in self._data.taskKanbanStatus:
+                            self._data.taskKanbanStatus[fabric_id] = {}
+                        self._data.taskKanbanStatus[fabric_id].update(kanban_statuses)
+                        print(f'Initialization: Loaded {len(kanban_statuses)} kanban statuses for fabric {fabric_id}')
+                
                 if existing_data.get('testCaseStates'):
                     for fabric_id, test_states in existing_data['testCaseStates'].items():
                         if fabric_id not in self._data.testCaseStates:
@@ -130,6 +152,7 @@ class InMemoryDatabase:
                     self._data.fabricCompletionDates[fabric_id] = {}
                     self._data.fabricNoteModificationDates[fabric_id] = {}
                     self._data.taskCategories[fabric_id] = {}
+                    self._data.taskKanbanStatus[fabric_id] = {}
             
             for section in sections:
                 section_id = section.get('id')

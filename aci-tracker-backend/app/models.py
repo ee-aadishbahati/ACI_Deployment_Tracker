@@ -100,6 +100,10 @@ class TaskCategoryUpdate(BaseModel):
     """Request model for updating task category"""
     category: str
 
+class TaskKanbanStatusUpdate(BaseModel):
+    """Request model for updating task kanban status"""
+    kanbanStatus: str
+
 class CommentCreate(BaseModel):
     """Request model for creating a comment"""
     content: str

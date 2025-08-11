@@ -1112,15 +1112,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateTaskKanbanStatus = async (taskId: string, kanbanStatus: string, fabricId?: string) => {
     const targetFabricId = fabricId || state.currentFabric;
     
+    console.log('Frontend: Updating kanban status for task', taskId, 'to', kanbanStatus, 'in fabric', targetFabricId);
+    
     try {
+      await apiService.updateTaskKanbanStatus(targetFabricId, taskId, kanbanStatus);
+      console.log('Frontend: Successfully updated kanban status via API');
+      
+      dispatch({
+        type: 'UPDATE_TASK_KANBAN_STATUS',
+        payload: { taskId, kanbanStatus, fabricId: targetFabricId }
+      });
+    } catch (error) {
+      console.error('Frontend: Error updating task kanban status via API:', error);
+      console.log('Frontend: Falling back to local update only');
+      
       dispatch({
         type: 'UPDATE_TASK_KANBAN_STATUS',
         payload: { taskId, kanbanStatus, fabricId: targetFabricId }
       });
       
-      console.log('Kanban status updated locally:', { taskId, kanbanStatus, fabricId: targetFabricId });
-    } catch (error) {
-      console.error('Error updating task kanban status:', error);
+      console.warn('Kanban status updated locally only. Changes may not persist if you refresh the page.');
     }
   };
 

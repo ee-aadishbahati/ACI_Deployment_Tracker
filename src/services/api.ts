@@ -111,6 +111,20 @@ class ApiService {
     return response.json();
   }
 
+  async updateTaskKanbanStatus(fabricId: string, taskId: string, kanbanStatus: string): Promise<AppData> {
+    const response = await this.makeRequest(`${API_URL}/api/fabric/${fabricId}/task/${taskId}/kanban`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ kanbanStatus }),
+    });
+    if (!response || !response.ok) {
+      throw new Error(`Failed to update task kanban status: ${response?.statusText || 'No response'}`);
+    }
+    return response.json();
+  }
+
   async setCurrentFabric(fabricId: string): Promise<AppData> {
     const response = await this.makeRequest(`${API_URL}/api/fabric/${fabricId}/current`, {
       method: 'PATCH',

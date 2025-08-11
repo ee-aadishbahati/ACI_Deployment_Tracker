@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { TaskCategory, Fabric } from '../types';
-import { CheckSquare, Square, Star, AlertTriangle, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckSquare, Square, Star, AlertTriangle, Trash2, X, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 
 interface BulkOperationsProps {
   selectedTasks: string[];
@@ -10,7 +10,7 @@ interface BulkOperationsProps {
 }
 
 export function BulkOperations({ selectedTasks, onSelectionChange, onClose }: BulkOperationsProps) {
-  const { updateTaskState, updateTaskStateAcrossSelectedFabrics, updateTaskCategory, updateTaskCategoryAcrossSelectedFabrics, getCurrentFabricTasks, state, getFabricProgress } = useApp();
+  const { updateTaskState, updateTaskStateAcrossSelectedFabrics, updateTaskCategory, updateTaskCategoryAcrossSelectedFabrics, getCurrentFabricTasks, state, getFabricProgress, cloneTasksAcrossFabrics } = useApp();
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedFabrics, setSelectedFabrics] = useState<string[]>([]);
   const [showFabricSelection, setShowFabricSelection] = useState(false);
@@ -108,6 +108,35 @@ export function BulkOperations({ selectedTasks, onSelectionChange, onClose }: Bu
 
   const handleDeselectAllFabrics = () => {
     setSelectedFabrics([]);
+  };
+
+  const handleCloneToFabrics = async () => {
+    if (selectedFabrics.length === 0) {
+      alert('Please select at least one fabric to clone tasks to.');
+      return;
+    }
+
+    const fabricNames = selectedFabrics.map(fabricId => 
+      state.fabrics.find(f => f.id === fabricId)?.name || fabricId
+    ).join(', ');
+    
+    const confirmMessage = `This will clone ${selectedTasks.length} task(s) to the following fabrics: ${fabricNames}. Existing tasks with the same ID will be overwritten. Continue?`;
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await cloneTasksAcrossFabrics(selectedTasks, state.currentFabric, selectedFabrics);
+      onSelectionChange([]);
+      alert(`Successfully cloned ${selectedTasks.length} task(s) to ${selectedFabrics.length} fabric(s).`);
+    } catch (error) {
+      console.error('Error cloning tasks:', error);
+      alert('Error occurred while cloning tasks. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const getFabricStatusColor = (fabricId: string) => {
@@ -289,6 +318,18 @@ export function BulkOperations({ selectedTasks, onSelectionChange, onClose }: Bu
         >
           <Trash2 className="h-4 w-4" />
           <span>Remove Priority</span>
+        </button>
+
+        <div className="h-6 w-px bg-gray-300"></div>
+
+        <button
+          onClick={handleCloneToFabrics}
+          disabled={isProcessing || selectedFabrics.length === 0}
+          className="flex items-center space-x-1 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+          title={selectedFabrics.length === 0 ? "Select fabrics above to enable cloning" : `Clone to ${selectedFabrics.length} fabric(s)`}
+        >
+          <Copy className="h-4 w-4" />
+          <span>Clone to Fabrics</span>
         </button>
       </div>
     </div>

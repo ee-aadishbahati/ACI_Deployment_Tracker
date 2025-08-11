@@ -121,7 +121,7 @@ export function CommentInput({
       <div className="relative">
         <MentionsInput
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={(e: any) => setContent(e.target.value)}
           onKeyDown={handleKeyPress}
           placeholder={placeholder}
           style={mentionStyle}

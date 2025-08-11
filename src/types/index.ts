@@ -5,6 +5,8 @@ export type Risk = 'High' | 'Medium' | 'Low';
 export type ExecutionStatus = 'T.B.E.' | 'Pass' | 'Fail' | 'Partial' | 'Defer' | 'R.I.';
 export type ResourceRole = 'EE' | 'PS' | 'SP' | 'OK' | 'Vendor';
 export type TaskCategory = 'must-have' | 'should-have' | 'none';
+export type UserRole = 'admin' | 'manager' | 'engineer' | 'viewer';
+export type NotificationType = 'mention' | 'comment' | 'task_update';
 
 export interface Fabric {
   id: string;
@@ -110,6 +112,11 @@ export interface AppState {
   testCaseStates: { [fabricId: string]: { [tcId: string]: TestCase } };
   taskCategories: { [fabricId: string]: { [taskId: string]: TaskCategory } };
   taskKanbanStatus: { [fabricId: string]: { [taskId: string]: string } };
+  users: { [userId: string]: User };
+  currentUser: string;
+  taskComments: { [taskId: string]: TaskComment[] };
+  notifications: Notification[];
+  taskTemplates: TaskTemplate[];
   isLoading: boolean;
 }
 
@@ -128,7 +135,19 @@ export type AppAction =
   | { type: 'DELETE_SUB_CHECKLIST'; payload: string }
   | { type: 'LOAD_DATA'; payload: Partial<AppState> }
   | { type: 'TOGGLE_SECTION'; payload: string }
-  | { type: 'SET_LOADING'; payload: boolean };
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_CURRENT_USER'; payload: string }
+  | { type: 'ADD_USER'; payload: User }
+  | { type: 'UPDATE_USER'; payload: User }
+  | { type: 'ADD_COMMENT'; payload: TaskComment }
+  | { type: 'UPDATE_COMMENT'; payload: TaskComment }
+  | { type: 'DELETE_COMMENT'; payload: { commentId: string; taskId: string } }
+  | { type: 'ADD_NOTIFICATION'; payload: Omit<Notification, 'id' | 'timestamp'> }
+  | { type: 'MARK_NOTIFICATION_READ'; payload: string }
+  | { type: 'CLEAR_NOTIFICATIONS'; payload: void }
+  | { type: 'ADD_TASK_TEMPLATE'; payload: TaskTemplate }
+  | { type: 'DELETE_TASK_TEMPLATE'; payload: string }
+  | { type: 'CLONE_TASKS_ACROSS_FABRICS'; payload: { taskIds: string[]; sourceFabricId: string; targetFabricIds: string[] } };
 
 export interface NotificationProps {
   message: string;
@@ -164,6 +183,54 @@ export interface DependencyValidationResult {
   message?: string;
 }
 
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  fabricAccess: string[];
+  avatar?: string;
+  isOnline?: boolean;
+}
+
+export interface TaskComment {
+  id: string;
+  taskId: string;
+  fabricId: string;
+  userId: string;
+  content: string;
+  mentions: string[];
+  timestamp: Date;
+  parentCommentId?: string;
+  edited?: Date;
+  attachments?: string[];
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  taskId: string;
+  fabricId: string;
+  message: string;
+  read: boolean;
+  timestamp: Date;
+  fromUserId?: string;
+}
+
+export interface TaskTemplate {
+  id: string;
+  name: string;
+  description: string;
+  tasks: Task[];
+  fabricType?: FabricType;
+  siteType?: SiteType;
+  createdBy: string;
+  createdAt: Date;
+  tags?: string[];
+}
+
 export interface AppContextType {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
@@ -186,4 +253,18 @@ export interface AppContextType {
   deleteSubChecklist: (name: string) => void;
   getDependencyStatus: (fabricId: string, taskId: string) => DependencyStatus;
   findTaskById: (taskId: string) => Task | undefined;
+  setCurrentUser: (userId: string) => void;
+  addUser: (user: User) => void;
+  updateUser: (user: User) => void;
+  addComment: (comment: Omit<TaskComment, 'id' | 'timestamp'>) => Promise<void>;
+  updateComment: (comment: TaskComment) => Promise<void>;
+  deleteComment: (commentId: string, taskId: string) => Promise<void>;
+  getTaskComments: (taskId: string) => TaskComment[];
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => void;
+  markNotificationRead: (notificationId: string) => void;
+  clearNotifications: () => void;
+  getUnreadNotifications: () => Notification[];
+  addTaskTemplate: (template: Omit<TaskTemplate, 'id' | 'createdAt'>) => void;
+  deleteTaskTemplate: (templateId: string) => void;
+  cloneTasksAcrossFabrics: (taskIds: string[], sourceFabricId: string, targetFabricIds: string[]) => Promise<void>;
 }

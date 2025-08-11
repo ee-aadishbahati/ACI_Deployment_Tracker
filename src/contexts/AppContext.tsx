@@ -19,6 +19,21 @@ const initialState: AppState = {
   testCaseStates: {},
   taskCategories: {},
   taskKanbanStatus: {},
+  users: {
+    'default-user': {
+      id: 'default-user',
+      username: 'admin',
+      email: 'admin@example.com',
+      displayName: 'Administrator',
+      role: 'admin',
+      fabricAccess: ['north-it', 'north-ot', 'south-it', 'south-ot', 'tertiary-it', 'tertiary-ot'],
+      isOnline: true
+    }
+  },
+  currentUser: 'default-user',
+  taskComments: {},
+  notifications: [],
+  taskTemplates: [],
   isLoading: true
 };
 
@@ -138,19 +153,24 @@ function appReducer(state: AppState, action: AppAction): AppState {
         testCaseStates: action.payload.testCaseStates || {},
         subChecklists: action.payload.subChecklists || {},
         taskCategories: action.payload.taskCategories || {},
-        taskKanbanStatus: action.payload.taskKanbanStatus || {}
+        taskKanbanStatus: action.payload.taskKanbanStatus || {},
+        users: action.payload.users || state.users,
+        currentUser: action.payload.currentUser || state.currentUser,
+        taskComments: action.payload.taskComments || {},
+        notifications: action.payload.notifications || [],
+        taskTemplates: action.payload.taskTemplates || []
       };
       
-      const newState = { 
+      const loadedState = { 
         ...state, 
         ...validatedPayload,
         sections: action.payload.sections || state.sections
       };
-      console.log('New state after load:', newState);
-      console.log('fabricStates in new state:', newState.fabricStates);
-      console.log('fabricStates keys:', Object.keys(newState.fabricStates || {}));
-      console.log('Sample fabricState for north-it:', newState.fabricStates?.['north-it']);
-      return newState;
+      console.log('New state after load:', loadedState);
+      console.log('fabricStates in new state:', loadedState.fabricStates);
+      console.log('fabricStates keys:', Object.keys(loadedState.fabricStates || {}));
+      console.log('Sample fabricState for north-it:', loadedState.fabricStates?.['north-it']);
+      return loadedState;
     
     case 'UPDATE_TASK_COMPLETION_DATE':
       const { taskId: completionTaskId, completionDate, fabricId: completionFabricId } = action.payload;
@@ -199,6 +219,175 @@ function appReducer(state: AppState, action: AppAction): AppState {
     
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
+    
+    case 'SET_CURRENT_USER':
+      return { ...state, currentUser: action.payload };
+    
+    case 'ADD_USER':
+      return {
+        ...state,
+        users: {
+          ...state.users,
+          [action.payload.id]: action.payload
+        }
+      };
+    
+    case 'UPDATE_USER':
+      return {
+        ...state,
+        users: {
+          ...state.users,
+          [action.payload.id]: action.payload
+        }
+      };
+    
+    case 'ADD_COMMENT':
+      const comment = {
+        ...action.payload,
+        id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date()
+      };
+      return {
+        ...state,
+        taskComments: {
+          ...state.taskComments,
+          [action.payload.taskId]: [
+            ...(state.taskComments[action.payload.taskId] || []),
+            comment
+          ]
+        }
+      };
+    
+    case 'UPDATE_COMMENT':
+      return {
+        ...state,
+        taskComments: {
+          ...state.taskComments,
+          [action.payload.taskId]: (state.taskComments[action.payload.taskId] || []).map(c =>
+            c.id === action.payload.id ? { ...action.payload, edited: new Date() } : c
+          )
+        }
+      };
+    
+    case 'DELETE_COMMENT':
+      return {
+        ...state,
+        taskComments: {
+          ...state.taskComments,
+          [action.payload.taskId]: (state.taskComments[action.payload.taskId] || []).filter(c =>
+            c.id !== action.payload.commentId
+          )
+        }
+      };
+    
+    case 'ADD_NOTIFICATION':
+      const notification = {
+        ...action.payload,
+        id: `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date()
+      };
+      return {
+        ...state,
+        notifications: [notification, ...state.notifications]
+      };
+    
+    case 'MARK_NOTIFICATION_READ':
+      return {
+        ...state,
+        notifications: state.notifications.map(n =>
+          n.id === action.payload ? { ...n, read: true } : n
+        )
+      };
+    
+    case 'CLEAR_NOTIFICATIONS':
+      return {
+        ...state,
+        notifications: []
+      };
+    
+    case 'ADD_TASK_TEMPLATE':
+      const template = {
+        ...action.payload,
+        id: `template-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date()
+      };
+      return {
+        ...state,
+        taskTemplates: [...state.taskTemplates, template]
+      };
+    
+    case 'DELETE_TASK_TEMPLATE':
+      return {
+        ...state,
+        taskTemplates: state.taskTemplates.filter(t => t.id !== action.payload)
+      };
+    
+    case 'CLONE_TASKS_ACROSS_FABRICS':
+      const { taskIds, sourceFabricId, targetFabricIds } = action.payload;
+      let clonedState = { ...state };
+      
+      targetFabricIds.forEach(targetFabricId => {
+        taskIds.forEach(taskId => {
+          const sourceTaskState = state.fabricStates[sourceFabricId]?.[taskId];
+          const sourceTaskNotes = state.fabricNotes[sourceFabricId]?.[taskId];
+          const sourceTaskCategory = state.taskCategories[sourceFabricId]?.[taskId];
+          const sourceTaskKanbanStatus = state.taskKanbanStatus[sourceFabricId]?.[taskId];
+          
+          if (sourceTaskState !== undefined) {
+            clonedState = {
+              ...clonedState,
+              fabricStates: {
+                ...clonedState.fabricStates,
+                [targetFabricId]: {
+                  ...clonedState.fabricStates[targetFabricId],
+                  [taskId]: sourceTaskState
+                }
+              }
+            };
+          }
+          
+          if (sourceTaskNotes) {
+            clonedState = {
+              ...clonedState,
+              fabricNotes: {
+                ...clonedState.fabricNotes,
+                [targetFabricId]: {
+                  ...clonedState.fabricNotes[targetFabricId],
+                  [taskId]: sourceTaskNotes
+                }
+              }
+            };
+          }
+          
+          if (sourceTaskCategory) {
+            clonedState = {
+              ...clonedState,
+              taskCategories: {
+                ...clonedState.taskCategories,
+                [targetFabricId]: {
+                  ...clonedState.taskCategories[targetFabricId],
+                  [taskId]: sourceTaskCategory
+                }
+              }
+            };
+          }
+          
+          if (sourceTaskKanbanStatus) {
+            clonedState = {
+              ...clonedState,
+              taskKanbanStatus: {
+                ...clonedState.taskKanbanStatus,
+                [targetFabricId]: {
+                  ...clonedState.taskKanbanStatus[targetFabricId],
+                  [taskId]: sourceTaskKanbanStatus
+                }
+              }
+            };
+          }
+        });
+      });
+      
+      return clonedState;
     
     default:
       return state;
@@ -350,6 +539,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       taskCategories: state.taskCategories,
       taskKanbanStatus: state.taskKanbanStatus,
       currentFabric: state.currentFabric,
+      users: state.users,
+      currentUser: state.currentUser,
+      taskComments: state.taskComments,
+      notifications: state.notifications,
+      taskTemplates: state.taskTemplates,
       lastSaved: new Date().toISOString()
     };
     
@@ -397,6 +591,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         try {
           const dataToSave = {
             ...currentStateData,
+            users: state.users,
+            currentUser: state.currentUser,
+            taskComments: state.taskComments,
+            notifications: state.notifications,
+            taskTemplates: state.taskTemplates,
             lastSaved: new Date().toISOString()
           };
           
@@ -925,6 +1124,112 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const setCurrentUser = (userId: string) => {
+    dispatch({ type: 'SET_CURRENT_USER', payload: userId });
+  };
+
+  const addUser = (user: any) => {
+    dispatch({ type: 'ADD_USER', payload: user });
+  };
+
+  const updateUser = (user: any) => {
+    dispatch({ type: 'UPDATE_USER', payload: user });
+  };
+
+  const addComment = async (comment: any) => {
+    try {
+      dispatch({ type: 'ADD_COMMENT', payload: comment });
+      
+      if (comment.mentions && comment.mentions.length > 0) {
+        comment.mentions.forEach((mentionedUserId: string) => {
+          if (mentionedUserId !== state.currentUser) {
+            dispatch({
+              type: 'ADD_NOTIFICATION',
+              payload: {
+                userId: mentionedUserId,
+                type: 'mention',
+                taskId: comment.taskId,
+                fabricId: comment.fabricId,
+                message: `${state.users[state.currentUser]?.displayName || 'Someone'} mentioned you in a comment`,
+                read: false,
+                fromUserId: state.currentUser
+              }
+            });
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  };
+
+  const updateComment = async (comment: any) => {
+    try {
+      dispatch({ type: 'UPDATE_COMMENT', payload: comment });
+    } catch (error) {
+      console.error('Error updating comment:', error);
+    }
+  };
+
+  const deleteComment = async (commentId: string, taskId: string) => {
+    try {
+      dispatch({ type: 'DELETE_COMMENT', payload: { commentId, taskId } });
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+    }
+  };
+
+  const getTaskComments = (taskId: string) => {
+    return state.taskComments[taskId] || [];
+  };
+
+  const addNotification = (notification: any) => {
+    dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
+  };
+
+  const markNotificationRead = (notificationId: string) => {
+    dispatch({ type: 'MARK_NOTIFICATION_READ', payload: notificationId });
+  };
+
+  const clearNotifications = () => {
+    dispatch({ type: 'CLEAR_NOTIFICATIONS', payload: undefined });
+  };
+
+  const getUnreadNotifications = () => {
+    return state.notifications.filter(n => !n.read && n.userId === state.currentUser);
+  };
+
+  const addTaskTemplate = (template: any) => {
+    dispatch({ type: 'ADD_TASK_TEMPLATE', payload: template });
+  };
+
+  const deleteTaskTemplate = (templateId: string) => {
+    dispatch({ type: 'DELETE_TASK_TEMPLATE', payload: templateId });
+  };
+
+  const cloneTasksAcrossFabrics = async (taskIds: string[], sourceFabricId: string, targetFabricIds: string[]) => {
+    try {
+      dispatch({
+        type: 'CLONE_TASKS_ACROSS_FABRICS',
+        payload: { taskIds, sourceFabricId, targetFabricIds }
+      });
+      
+      dispatch({
+        type: 'ADD_NOTIFICATION',
+        payload: {
+          userId: state.currentUser,
+          type: 'task_update',
+          taskId: taskIds[0],
+          fabricId: sourceFabricId,
+          message: `Successfully cloned ${taskIds.length} task(s) to ${targetFabricIds.length} fabric(s)`,
+          read: false
+        }
+      });
+    } catch (error) {
+      console.error('Error cloning tasks across fabrics:', error);
+    }
+  };
+
   const contextValue: AppContextType = {
     state,
     dispatch,
@@ -946,7 +1251,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadSubChecklist,
     deleteSubChecklist,
     getDependencyStatus,
-    findTaskById
+    findTaskById,
+    setCurrentUser,
+    addUser,
+    updateUser,
+    addComment,
+    updateComment,
+    deleteComment,
+    getTaskComments,
+    addNotification,
+    markNotificationRead,
+    clearNotifications,
+    getUnreadNotifications,
+    addTaskTemplate,
+    deleteTaskTemplate,
+    cloneTasksAcrossFabrics
   };
 
   return (

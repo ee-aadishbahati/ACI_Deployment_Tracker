@@ -13,7 +13,9 @@ import { ThemeToggle } from './components/ThemeToggle';
 import { TaskCreator } from './components/TaskCreator';
 import { CompletedTasks } from './components/CompletedTasks';
 import { KanbanBoard } from './components/KanbanBoard';
+import { NotificationCenter } from './components/NotificationCenter';
 import { useApp } from './contexts/AppContext';
+import { Toaster } from 'react-hot-toast';
 import { apiService } from './services/api';
 import { 
   BarChart3, 
@@ -93,7 +95,13 @@ function AppContent() {
               testCaseStates: importedData.testCaseStates || {},
               subChecklists: importedData.subChecklists || {},
               taskCategories: importedData.taskCategories || {},
+              taskKanbanStatus: importedData.taskKanbanStatus || {},
               currentFabric: importedData.currentFabric || null,
+              users: importedData.users || {},
+              currentUser: importedData.currentUser || 'default-user',
+              taskComments: importedData.taskComments || {},
+              notifications: importedData.notifications || [],
+              taskTemplates: importedData.taskTemplates || [],
               lastSaved: null
             };
             
@@ -348,6 +356,7 @@ function AppContent() {
               <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
               
               <div className="flex items-center space-x-2">
+                <NotificationCenter />
                 <ThemeToggle />
               </div>
               
@@ -478,6 +487,18 @@ function AppContent() {
           </div>
         </div>
       </footer>
+      
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+        }}
+      />
     </div>
   );
 }

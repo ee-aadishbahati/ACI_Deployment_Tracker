@@ -12,8 +12,14 @@ export interface AppData {
   fabricNoteModificationDates: Record<string, Record<string, string>>;
   testCaseStates: Record<string, Record<string, any>>;
   taskCategories: Record<string, Record<string, string>>;
+  taskKanbanStatus: Record<string, Record<string, string>>;
   subChecklists: Record<string, any>;
   currentFabric: string | null;
+  users: Record<string, any>;
+  currentUser: string | null;
+  taskComments: Record<string, any[]>;
+  notifications: any[];
+  taskTemplates: any[];
   lastSaved: string | null;
 }
 
@@ -153,6 +159,58 @@ class ApiService {
     });
     if (!response || !response.ok) {
       throw new Error(`Failed to initialize backend: ${response?.statusText || 'No response'}`);
+    }
+    return response.json();
+  }
+
+  async addComment(fabricId: string, taskId: string, comment: any): Promise<AppData> {
+    const response = await this.makeRequest(`${API_URL}/api/fabric/${fabricId}/task/${taskId}/comments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(comment),
+    });
+    if (!response || !response.ok) {
+      throw new Error(`Failed to add comment: ${response?.statusText || 'No response'}`);
+    }
+    return response.json();
+  }
+
+  async updateComment(fabricId: string, taskId: string, commentId: string, comment: any): Promise<AppData> {
+    const response = await this.makeRequest(`${API_URL}/api/fabric/${fabricId}/task/${taskId}/comments/${commentId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(comment),
+    });
+    if (!response || !response.ok) {
+      throw new Error(`Failed to update comment: ${response?.statusText || 'No response'}`);
+    }
+    return response.json();
+  }
+
+  async deleteComment(fabricId: string, taskId: string, commentId: string): Promise<AppData> {
+    const response = await this.makeRequest(`${API_URL}/api/fabric/${fabricId}/task/${taskId}/comments/${commentId}`, {
+      method: 'DELETE',
+    });
+    if (!response || !response.ok) {
+      throw new Error(`Failed to delete comment: ${response?.statusText || 'No response'}`);
+    }
+    return response.json();
+  }
+
+  async cloneTasksAcrossFabrics(cloneRequest: any): Promise<AppData> {
+    const response = await this.makeRequest(`${API_URL}/api/clone-tasks`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(cloneRequest),
+    });
+    if (!response || !response.ok) {
+      throw new Error(`Failed to clone tasks: ${response?.statusText || 'No response'}`);
     }
     return response.json();
   }

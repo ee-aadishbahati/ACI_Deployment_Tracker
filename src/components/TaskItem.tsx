@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Task, TaskCategory } from '../types';
 import { useApp } from '../contexts/AppContext';
-import { ChevronDown, ChevronRight, User, Clock, AlertTriangle, CheckCircle, Plus, Star } from 'lucide-react';
+import { ChevronDown, ChevronRight, User, Clock, AlertTriangle, CheckCircle, Plus, Star, MessageSquare } from 'lucide-react';
+import { TaskComments } from './TaskComments';
 
 interface TaskItemProps {
   task: Task;
@@ -18,9 +19,10 @@ export function TaskItem({
   onSelect, 
   bulkMode = false 
 }: TaskItemProps) {
-  const { state, updateTaskState, updateTaskNotes, updateTaskCategory } = useApp();
+  const { state, updateTaskState, updateTaskNotes, updateTaskCategory, getTaskComments } = useApp();
   const [showDetails, setShowDetails] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [showComments, setShowComments] = useState(false);
 
   const handleCheckboxChange = (checked: boolean) => {
     updateTaskState(task.id, checked);
@@ -149,6 +151,19 @@ export function TaskItem({
               >
                 <Plus size={16} />
               </button>
+              
+              <button
+                onClick={() => setShowComments(!showComments)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 relative"
+                title="Comments"
+              >
+                <MessageSquare size={16} />
+                {getTaskComments(task.id).length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {getTaskComments(task.id).length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
@@ -271,6 +286,12 @@ export function TaskItem({
                 className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 rows={3}
               />
+            </div>
+          )}
+
+          {showComments && (
+            <div className="mt-3 border-t border-gray-200 dark:border-gray-600 pt-3">
+              <TaskComments taskId={task.id} fabricId={state.currentFabric} />
             </div>
           )}
         </div>

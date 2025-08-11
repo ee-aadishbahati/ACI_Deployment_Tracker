@@ -66,5 +66,16 @@ class ConnectionManager:
             timestamp=datetime.now()
         )
         await self.broadcast_message(message)
+    
+    async def broadcast_task_kanban_update(self, fabric_id: str, task_id: str, kanban_status: str):
+        """Broadcast task kanban status update"""
+        message = WebSocketMessage(
+            type="task_kanban_updated",
+            fabricId=fabric_id,
+            taskId=task_id,
+            data={"kanbanStatus": kanban_status},
+            timestamp=datetime.now()
+        )
+        await self.broadcast_message(message)
 
 manager = ConnectionManager()

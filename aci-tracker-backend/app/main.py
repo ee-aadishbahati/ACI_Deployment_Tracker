@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
-from app.models import AppData, TaskStateUpdate, TaskNotesUpdate, TaskCategoryUpdate
+from app.models import AppData, TaskStateUpdate, TaskNotesUpdate, TaskCategoryUpdate, TaskKanbanStatusUpdate
 from app.database import db
 from app.websocket_manager import manager
 
@@ -61,6 +61,15 @@ async def update_task_category(fabric_id: str, task_id: str, update: TaskCategor
     updated_data = db.update_task_category(fabric_id, task_id, update.category)
     
     await manager.broadcast_task_category_update(fabric_id, task_id, update.category)
+    
+    return updated_data
+
+@app.patch("/api/fabric/{fabric_id}/task/{task_id}/kanban", response_model=AppData)
+async def update_task_kanban_status(fabric_id: str, task_id: str, update: TaskKanbanStatusUpdate):
+    """Update task kanban status"""
+    updated_data = db.update_task_kanban_status(fabric_id, task_id, update.kanbanStatus)
+    
+    await manager.broadcast_task_kanban_update(fabric_id, task_id, update.kanbanStatus)
     
     return updated_data
 

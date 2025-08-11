@@ -61,6 +61,9 @@ export const useWebSocket = ({
             case 'task_category_updated':
               onTaskCategoryUpdate?.(message.fabricId, message.taskId, message.data.category);
               break;
+            case 'task_kanban_updated':
+              console.log('WebSocket: Received kanban status update', message.data);
+              break;
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);

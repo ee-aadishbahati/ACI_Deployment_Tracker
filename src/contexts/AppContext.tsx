@@ -18,6 +18,7 @@ const initialState: AppState = {
   fabricNoteModificationDates: {},
   testCaseStates: {},
   taskCategories: {},
+  taskKanbanStatus: {},
   isLoading: true
 };
 
@@ -136,7 +137,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
         fabricNoteModificationDates: action.payload.fabricNoteModificationDates || {},
         testCaseStates: action.payload.testCaseStates || {},
         subChecklists: action.payload.subChecklists || {},
-        taskCategories: action.payload.taskCategories || {}
+        taskCategories: action.payload.taskCategories || {},
+        taskKanbanStatus: action.payload.taskKanbanStatus || {}
       };
       
       const newState = { 
@@ -178,6 +180,19 @@ function appReducer(state: AppState, action: AppAction): AppState {
           [modNoteFabricId]: {
             ...state.fabricNoteModificationDates[modNoteFabricId],
             [modNoteTaskId]: modificationDate
+          }
+        }
+      };
+    
+    case 'UPDATE_TASK_KANBAN_STATUS':
+      const { taskId: kanbanTaskId, kanbanStatus, fabricId: kanbanFabricId } = action.payload;
+      return {
+        ...state,
+        taskKanbanStatus: {
+          ...state.taskKanbanStatus,
+          [kanbanFabricId]: {
+            ...state.taskKanbanStatus[kanbanFabricId],
+            [kanbanTaskId]: kanbanStatus
           }
         }
       };
@@ -333,6 +348,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       testCaseStates: state.testCaseStates,
       subChecklists: state.subChecklists,
       taskCategories: state.taskCategories,
+      taskKanbanStatus: state.taskKanbanStatus,
       currentFabric: state.currentFabric,
       lastSaved: new Date().toISOString()
     };
@@ -355,7 +371,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error saving to localStorage:', error);
     }
-  }, [hasLoadedFromStorage, state.fabricStates, state.fabricNotes, state.fabricCompletionDates, state.fabricNoteModificationDates, state.testCaseStates, state.subChecklists, state.taskCategories, state.currentFabric]);
+  }, [hasLoadedFromStorage, state.fabricStates, state.fabricNotes, state.fabricCompletionDates, state.fabricNoteModificationDates, state.testCaseStates, state.subChecklists, state.taskCategories, state.taskKanbanStatus, state.currentFabric]);
 
   const lastSavedStateRef = useRef<string>('');
   
@@ -371,6 +387,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         testCaseStates: state.testCaseStates,
         subChecklists: state.subChecklists,
         taskCategories: state.taskCategories,
+        taskKanbanStatus: state.taskKanbanStatus,
         currentFabric: state.currentFabric
       };
       
@@ -394,7 +411,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }, 15000); // 15 seconds
     
     return () => clearInterval(autoSaveInterval);
-  }, [hasLoadedFromStorage, state.fabricStates, state.fabricNotes, state.fabricCompletionDates, state.fabricNoteModificationDates, state.testCaseStates, state.subChecklists, state.taskCategories, state.currentFabric]);
+  }, [hasLoadedFromStorage, state.fabricStates, state.fabricNotes, state.fabricCompletionDates, state.fabricNoteModificationDates, state.testCaseStates, state.subChecklists, state.taskCategories, state.taskKanbanStatus, state.currentFabric]);
 
   const getCurrentFabricTasks = (): Task[] => {
     const currentFabric = state.fabrics.find(f => f.id === state.currentFabric);
@@ -893,6 +910,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   };
 
+  const updateTaskKanbanStatus = async (taskId: string, kanbanStatus: string, fabricId?: string) => {
+    const targetFabricId = fabricId || state.currentFabric;
+    
+    try {
+      dispatch({
+        type: 'UPDATE_TASK_KANBAN_STATUS',
+        payload: { taskId, kanbanStatus, fabricId: targetFabricId }
+      });
+      
+      console.log('Kanban status updated locally:', { taskId, kanbanStatus, fabricId: targetFabricId });
+    } catch (error) {
+      console.error('Error updating task kanban status:', error);
+    }
+  };
+
   const contextValue: AppContextType = {
     state,
     dispatch,
@@ -905,6 +937,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     updateTaskCategory,
     updateTaskCategoryAcrossSelectedFabrics,
     updateTaskCategoryAcrossAllFabrics,
+    updateTaskKanbanStatus,
     addTask,
     addSubsection,
     setCurrentFabric,

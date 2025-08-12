@@ -19,7 +19,7 @@ export function TaskItem({
   onSelect, 
   bulkMode = false 
 }: TaskItemProps) {
-  const { state, updateTaskState, updateTaskNotes } = useDatabaseApp();
+  const { state, updateTaskState, updateTaskNotes, updateTaskCategory } = useDatabaseApp();
   const [showDetails, setShowDetails] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showComments, setShowComments] = useState(false);
@@ -33,7 +33,7 @@ export function TaskItem({
   };
 
   const handleCategoryChange = (category: TaskCategory) => {
-    console.log('Category change:', task.id, category);
+    updateTaskCategory(task.id, category);
   };
 
   const getPriorityColor = (priority?: string) => {

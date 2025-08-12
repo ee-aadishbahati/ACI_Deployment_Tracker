@@ -1,10 +1,10 @@
 import React from 'react';
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { Task, TaskCategory } from '../types';
 import { Star, AlertTriangle, CheckCircle2, Circle } from 'lucide-react';
 
 export function PriorityCategories() {
-  const { state, updateTaskCategory } = useApp();
+  const { state, updateTaskCategory } = useDatabaseApp();
   
   const currentFabric = state.fabrics.find(f => f.id === state.currentFabric);
   

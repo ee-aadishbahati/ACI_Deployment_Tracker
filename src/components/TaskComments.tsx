@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { TaskComment } from '../types';
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { 
   MessageSquare, 
   Reply, 
@@ -17,7 +17,7 @@ interface TaskCommentsProps {
 }
 
 export function TaskComments({ taskId, fabricId }: TaskCommentsProps) {
-  const { state, getTaskComments, deleteComment, updateComment } = useApp();
+  const { state, getTaskComments, deleteComment, updateComment } = useDatabaseApp();
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');

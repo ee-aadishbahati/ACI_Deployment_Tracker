@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { Plus, Download, Trash2, FileText, X } from 'lucide-react';
 
 export function SubChecklistManager() {
-  const { state, saveSubChecklist, deleteSubChecklist } = useApp();
+  const { state, saveSubChecklist, deleteSubChecklist } = useDatabaseApp();
   const [isOpen, setIsOpen] = useState(false);
   const [subChecklistName, setSubChecklistName] = useState('');
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);

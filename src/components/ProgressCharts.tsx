@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
@@ -8,7 +8,7 @@ import { TrendingUp, PieChart as PieChartIcon, BarChart3, Activity } from 'lucid
 import { useWebSocket } from '../hooks/useWebSocket';
 
 export function ProgressCharts() {
-  const { state, getFabricProgress } = useApp();
+  const { state, getFabricProgress } = useDatabaseApp();
   const [, setLastUpdate] = useState(Date.now());
 
   useWebSocket({

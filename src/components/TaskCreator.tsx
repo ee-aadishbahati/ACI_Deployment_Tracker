@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { Plus, Check, X, ChevronDown } from 'lucide-react';
 
 export function TaskCreator() {
-  const { state, addTask, addSubsection } = useApp();
+  const { state, addTask, addSubsection } = useDatabaseApp();
   const [taskText, setTaskText] = useState('');
   const [selectedSectionId, setSelectedSectionId] = useState('');
   const [selectedSubsectionTitle, setSelectedSubsectionTitle] = useState('');

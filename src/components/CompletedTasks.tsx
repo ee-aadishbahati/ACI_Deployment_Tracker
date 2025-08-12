@@ -1,10 +1,10 @@
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { Task } from '../types';
 import { CheckCircle2, Calendar, Clock, FileText } from 'lucide-react';
 import { formatCompletionDate, formatWeekRange, isDateInCurrentWeek } from '../utils/dateUtils';
 
 export function CompletedTasks() {
-  const { getCompletedTasks, state, updateTaskState } = useApp();
+  const { getCompletedTasks, state, updateTaskState } = useDatabaseApp();
   const completedTasks = getCompletedTasks();
 
   const handleUnmarkTask = async (taskId: string, fabricId: string) => {

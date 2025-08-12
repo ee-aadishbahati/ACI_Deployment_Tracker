@@ -1,5 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, useState } from 'react';
-import { AppState, Task, SubChecklist, FabricProgress, AppAction } from '../types';
+import { AppState, Task, SubChecklist, FabricProgress, AppAction, TaskCategory, TaskComment } from '../types';
 import { fabricsData } from '../data/fabricsData';
 import { sectionsData } from '../data/sectionsData';
 import { ErrorHandler, ErrorType } from '../utils/ErrorHandler';
@@ -9,9 +9,26 @@ interface DatabaseAppContextType {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
   getCurrentFabricTasks: () => Task[];
+  getCompletedTasks: () => Task[];
   getFabricProgress: (fabricId: string) => FabricProgress;
   updateTaskState: (taskId: string, checked: boolean, fabricId?: string) => Promise<void>;
+  updateTaskStateAcrossSelectedFabrics: (taskId: string, checked: boolean, fabricIds: string[]) => Promise<void>;
   updateTaskNotes: (taskId: string, notes: string, fabricId?: string) => Promise<void>;
+  updateTaskCategory: (taskId: string, category: TaskCategory, fabricId?: string) => Promise<void>;
+  updateTaskCategoryAcrossSelectedFabrics: (taskId: string, category: TaskCategory, fabricIds: string[]) => Promise<void>;
+  updateTaskCategoryAcrossAllFabrics: (taskId: string, category: TaskCategory) => Promise<void>;
+  updateTaskKanbanStatus: (taskId: string, kanbanStatus: string, fabricId?: string) => Promise<void>;
+  getTaskComments: (taskId: string) => TaskComment[];
+  addComment: (comment: TaskComment) => Promise<void>;
+  updateComment: (comment: TaskComment) => Promise<void>;
+  deleteComment: (commentId: string, taskId: string) => Promise<void>;
+  findTaskById: (taskId: string) => Task | undefined;
+  cloneTasksAcrossFabrics: (taskIds: string[], sourceFabricId: string, targetFabricIds: string[]) => Promise<void>;
+  addTask: (sectionId: string, subsectionTitle: string, taskData: any) => Promise<void>;
+  addSubsection: (sectionId: string, subsectionTitle: string) => Promise<void>;
+  markNotificationRead: (notificationId: string) => void;
+  clearNotifications: () => void;
+  getUnreadNotifications: () => any[];
   setCurrentFabric: (fabricId: string) => void;
   setSearchQuery: (query: string) => void;
   saveSubChecklist: (name: string, items: any[]) => Promise<void>;
@@ -107,6 +124,66 @@ function appReducer(state: AppState, action: AppAction): AppState {
     
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
+    
+    case 'UPDATE_TASK_CATEGORY':
+      const { taskId: catTaskId, category, fabricId: catFabricId } = action.payload;
+      return {
+        ...state,
+        taskCategories: {
+          ...state.taskCategories,
+          [catFabricId]: {
+            ...state.taskCategories[catFabricId],
+            [catTaskId]: category
+          }
+        }
+      };
+    
+    case 'UPDATE_TASK_KANBAN_STATUS':
+      const { taskId: kanbanTaskId, kanbanStatus, fabricId: kanbanFabricId } = action.payload;
+      return {
+        ...state,
+        taskKanbanStatus: {
+          ...state.taskKanbanStatus,
+          [kanbanFabricId]: {
+            ...state.taskKanbanStatus[kanbanFabricId],
+            [kanbanTaskId]: kanbanStatus
+          }
+        }
+      };
+    
+    case 'ADD_COMMENT':
+      return {
+        ...state,
+        taskComments: {
+          ...state.taskComments,
+          [action.payload.taskId]: [
+            ...(state.taskComments[action.payload.taskId] || []),
+            action.payload
+          ]
+        }
+      };
+    
+    case 'UPDATE_COMMENT':
+      return {
+        ...state,
+        taskComments: {
+          ...state.taskComments,
+          [action.payload.taskId]: (state.taskComments[action.payload.taskId] || []).map(comment =>
+            comment.id === action.payload.id ? action.payload : comment
+          )
+        }
+      };
+    
+    case 'DELETE_COMMENT':
+      return {
+        ...state,
+        taskComments: {
+          ...state.taskComments,
+          [action.payload.taskId]: (state.taskComments[action.payload.taskId] || []).filter(
+            comment => comment.id !== action.payload.commentId
+          )
+        }
+      };
     
     default:
       return state;
@@ -449,13 +526,327 @@ export function DatabaseAppProvider({ children }: { children: React.ReactNode })
     }
   };
 
+  const getCompletedTasks = (): Task[] => {
+    const allCompletedTasks: Task[] = [];
+    
+    state.fabrics.forEach(fabric => {
+      state.sections.forEach(section => {
+        section.subsections.forEach(subsection => {
+          subsection.tasks.forEach(task => {
+            if (state.fabricStates[fabric.id]?.[task.id]) {
+              allCompletedTasks.push({
+                ...task,
+                checked: true,
+                notes: state.fabricNotes[fabric.id]?.[task.id] || '',
+                fabricId: fabric.id
+              });
+            }
+          });
+        });
+      });
+    });
+    
+    return allCompletedTasks;
+  };
+
+  const updateTaskCategory = async (taskId: string, category: TaskCategory, fabricId?: string): Promise<void> => {
+    const targetFabricId = fabricId || state.currentFabric;
+    
+    try {
+      dispatch({
+        type: 'UPDATE_TASK_CATEGORY',
+        payload: { taskId, category, fabricId: targetFabricId }
+      });
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'updateTaskCategory');
+      
+      addNotification({
+        type: 'error',
+        title: 'Update Failed',
+        message: 'Failed to update task category. Please try again.'
+      });
+      
+      throw error;
+    }
+  };
+
+  const updateTaskStateAcrossSelectedFabrics = async (taskId: string, checked: boolean, fabricIds: string[]): Promise<void> => {
+    try {
+      await Promise.all(
+        fabricIds.map(fabricId => updateTaskState(taskId, checked, fabricId))
+      );
+      
+      addNotification({
+        type: 'success',
+        title: 'Bulk Update Complete',
+        message: `Task updated across ${fabricIds.length} fabric(s)`
+      });
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'updateTaskStateAcrossSelectedFabrics');
+      
+      addNotification({
+        type: 'error',
+        title: 'Bulk Update Failed',
+        message: 'Failed to update task across selected fabrics. Please try again.'
+      });
+      
+      throw error;
+    }
+  };
+
+  const updateTaskCategoryAcrossSelectedFabrics = async (taskId: string, category: TaskCategory, fabricIds: string[]): Promise<void> => {
+    try {
+      await Promise.all(
+        fabricIds.map(fabricId => updateTaskCategory(taskId, category, fabricId))
+      );
+      
+      addNotification({
+        type: 'success',
+        title: 'Bulk Category Update Complete',
+        message: `Task category updated across ${fabricIds.length} fabric(s)`
+      });
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'updateTaskCategoryAcrossSelectedFabrics');
+      
+      addNotification({
+        type: 'error',
+        title: 'Bulk Category Update Failed',
+        message: 'Failed to update task category across selected fabrics. Please try again.'
+      });
+      
+      throw error;
+    }
+  };
+
+  const updateTaskCategoryAcrossAllFabrics = async (taskId: string, category: TaskCategory): Promise<void> => {
+    const task = findTaskById(taskId);
+    if (!task) {
+      console.error(`Task ${taskId} not found`);
+      return;
+    }
+
+    const applicableFabrics = state.fabrics.filter(fabric => 
+      task.fabricSpecific || 
+      (task.ndoCentralized && fabric.site === 'Tertiary') ||
+      (!task.fabricSpecific && !task.ndoCentralized)
+    );
+
+    try {
+      await Promise.all(
+        applicableFabrics.map(fabric => updateTaskCategory(taskId, category, fabric.id))
+      );
+      
+      addNotification({
+        type: 'success',
+        title: 'Global Category Update Complete',
+        message: `Task category updated across all applicable fabrics`
+      });
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'updateTaskCategoryAcrossAllFabrics');
+      
+      addNotification({
+        type: 'error',
+        title: 'Global Category Update Failed',
+        message: 'Failed to update task category across all fabrics. Please try again.'
+      });
+      
+      throw error;
+    }
+  };
+
+  const updateTaskKanbanStatus = async (taskId: string, kanbanStatus: string, fabricId?: string): Promise<void> => {
+    const targetFabricId = fabricId || state.currentFabric;
+    
+    try {
+      dispatch({
+        type: 'UPDATE_TASK_KANBAN_STATUS',
+        payload: { taskId, kanbanStatus, fabricId: targetFabricId }
+      });
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'updateTaskKanbanStatus');
+      
+      addNotification({
+        type: 'error',
+        title: 'Update Failed',
+        message: 'Failed to update task kanban status. Please try again.'
+      });
+      
+      throw error;
+    }
+  };
+
+  const getTaskComments = (taskId: string): TaskComment[] => {
+    return state.taskComments[taskId] || [];
+  };
+
+  const addComment = async (comment: TaskComment): Promise<void> => {
+    try {
+      dispatch({ type: 'ADD_COMMENT', payload: comment });
+      
+      addNotification({
+        type: 'success',
+        title: 'Comment Added',
+        message: 'Comment added successfully'
+      });
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'addComment');
+      
+      addNotification({
+        type: 'error',
+        title: 'Comment Failed',
+        message: 'Failed to add comment. Please try again.'
+      });
+      
+      throw error;
+    }
+  };
+
+  const updateComment = async (comment: TaskComment): Promise<void> => {
+    try {
+      dispatch({ type: 'UPDATE_COMMENT', payload: comment });
+      
+      addNotification({
+        type: 'success',
+        title: 'Comment Updated',
+        message: 'Comment updated successfully'
+      });
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'updateComment');
+      
+      addNotification({
+        type: 'error',
+        title: 'Update Failed',
+        message: 'Failed to update comment. Please try again.'
+      });
+      
+      throw error;
+    }
+  };
+
+  const deleteComment = async (commentId: string, taskId: string): Promise<void> => {
+    try {
+      dispatch({ type: 'DELETE_COMMENT', payload: { commentId, taskId } });
+      
+      addNotification({
+        type: 'success',
+        title: 'Comment Deleted',
+        message: 'Comment deleted successfully'
+      });
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'deleteComment');
+      
+      addNotification({
+        type: 'error',
+        title: 'Delete Failed',
+        message: 'Failed to delete comment. Please try again.'
+      });
+      
+      throw error;
+    }
+  };
+
+  const findTaskById = (taskId: string): Task | undefined => {
+    for (const section of state.sections) {
+      for (const subsection of section.subsections) {
+        const task = subsection.tasks.find(t => t.id === taskId);
+        if (task) return task;
+      }
+    }
+    return undefined;
+  };
+
+  const cloneTasksAcrossFabrics = async (taskIds: string[], sourceFabricId: string, targetFabricIds: string[]): Promise<void> => {
+    try {
+      for (const taskId of taskIds) {
+        const sourceState = state.fabricStates[sourceFabricId]?.[taskId];
+        const sourceNotes = state.fabricNotes[sourceFabricId]?.[taskId];
+        const sourceCategory = state.taskCategories[sourceFabricId]?.[taskId];
+        
+        for (const targetFabricId of targetFabricIds) {
+          if (sourceState !== undefined) {
+            await updateTaskState(taskId, sourceState, targetFabricId);
+          }
+          if (sourceNotes) {
+            await updateTaskNotes(taskId, sourceNotes, targetFabricId);
+          }
+          if (sourceCategory) {
+            await updateTaskCategory(taskId, sourceCategory, targetFabricId);
+          }
+        }
+      }
+      
+      addNotification({
+        type: 'success',
+        title: 'Tasks Cloned',
+        message: `Successfully cloned ${taskIds.length} task(s) to ${targetFabricIds.length} fabric(s)`
+      });
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'cloneTasksAcrossFabrics');
+      
+      addNotification({
+        type: 'error',
+        title: 'Clone Failed',
+        message: 'Failed to clone tasks across fabrics. Please try again.'
+      });
+      
+      throw error;
+    }
+  };
+
+  const addTask = async (_sectionId: string, _subsectionTitle: string, _taskData: any): Promise<void> => {
+    console.log('addTask not yet implemented in DatabaseAppContext');
+    addNotification({
+      type: 'info',
+      title: 'Feature Coming Soon',
+      message: 'Task creation will be available in a future update'
+    });
+  };
+
+  const addSubsection = async (_sectionId: string, _subsectionTitle: string): Promise<void> => {
+    console.log('addSubsection not yet implemented in DatabaseAppContext');
+    addNotification({
+      type: 'info',
+      title: 'Feature Coming Soon',
+      message: 'Subsection creation will be available in a future update'
+    });
+  };
+
+  const markNotificationRead = (_notificationId: string): void => {
+    console.log('markNotificationRead not yet implemented in DatabaseAppContext');
+  };
+
+  const clearNotifications = (): void => {
+    console.log('clearNotifications not yet implemented in DatabaseAppContext');
+  };
+
+  const getUnreadNotifications = (): any[] => {
+    return [];
+  };
+
   const contextValue: DatabaseAppContextType = {
     state,
     dispatch,
     getCurrentFabricTasks,
+    getCompletedTasks,
     getFabricProgress,
     updateTaskState,
+    updateTaskStateAcrossSelectedFabrics,
     updateTaskNotes,
+    updateTaskCategory,
+    updateTaskCategoryAcrossSelectedFabrics,
+    updateTaskCategoryAcrossAllFabrics,
+    updateTaskKanbanStatus,
+    getTaskComments,
+    addComment,
+    updateComment,
+    deleteComment,
+    findTaskById,
+    cloneTasksAcrossFabrics,
+    addTask,
+    addSubsection,
+    markNotificationRead,
+    clearNotifications,
+    getUnreadNotifications,
     setCurrentFabric,
     setSearchQuery,
     saveSubChecklist,

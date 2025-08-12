@@ -1,10 +1,10 @@
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { BarChart3, Users, AlertTriangle, CheckCircle, Target } from 'lucide-react';
 import { ProgressCharts } from './ProgressCharts';
 import { BurndownChart } from './BurndownChart';
 
 export function FabricDashboard() {
-  const { state, getFabricProgress } = useApp();
+  const { state, getFabricProgress } = useDatabaseApp();
 
   if (state.isLoading) {
     return (

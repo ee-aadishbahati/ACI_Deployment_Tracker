@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Mention, MentionsInput } from 'react-mentions';
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { Send, X } from 'lucide-react';
 
 interface CommentInputProps {
@@ -20,7 +20,7 @@ export function CommentInput({
   onSubmit,
   onCancel 
 }: CommentInputProps) {
-  const { state, addComment } = useApp();
+  const { state, addComment } = useDatabaseApp();
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 

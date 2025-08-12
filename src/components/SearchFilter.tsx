@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { Search, X, Filter, ChevronDown } from 'lucide-react';
 
 interface FilterOptions {
@@ -11,7 +11,7 @@ interface FilterOptions {
 }
 
 export function SearchFilter() {
-  const { state, setSearchQuery } = useApp();
+  const { state, setSearchQuery } = useDatabaseApp();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({
     category: 'all',

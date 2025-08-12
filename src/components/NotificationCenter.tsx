@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { Bell, X, Check, MessageSquare, AtSign, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function NotificationCenter() {
-  const { state, getUnreadNotifications, markNotificationRead, clearNotifications } = useApp();
+  const { state, getUnreadNotifications, markNotificationRead, clearNotifications } = useDatabaseApp();
   const [isOpen, setIsOpen] = useState(false);
   
   const unreadNotifications = getUnreadNotifications();

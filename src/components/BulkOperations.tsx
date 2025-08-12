@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { TaskCategory, Fabric } from '../types';
 import { CheckSquare, Square, Star, AlertTriangle, Trash2, X, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 
@@ -10,7 +10,7 @@ interface BulkOperationsProps {
 }
 
 export function BulkOperations({ selectedTasks, onSelectionChange, onClose }: BulkOperationsProps) {
-  const { updateTaskState, updateTaskStateAcrossSelectedFabrics, updateTaskCategory, updateTaskCategoryAcrossSelectedFabrics, getCurrentFabricTasks, state, getFabricProgress, cloneTasksAcrossFabrics } = useApp();
+  const { updateTaskState, updateTaskStateAcrossSelectedFabrics, updateTaskCategory, updateTaskCategoryAcrossSelectedFabrics, getCurrentFabricTasks, state, getFabricProgress, cloneTasksAcrossFabrics } = useDatabaseApp();
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedFabrics, setSelectedFabrics] = useState<string[]>([]);
   const [showFabricSelection, setShowFabricSelection] = useState(false);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingDown, Calendar } from 'lucide-react';
 
@@ -12,7 +12,7 @@ interface ProgressSnapshot {
 }
 
 export function BurndownChart() {
-  const { state, getFabricProgress } = useApp();
+  const { state, getFabricProgress } = useDatabaseApp();
   const [historicalData, setHistoricalData] = useState<ProgressSnapshot[]>([]);
 
   useEffect(() => {

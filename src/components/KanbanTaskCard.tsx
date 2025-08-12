@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Task } from '../types';
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { 
   User, 
   Clock, 
@@ -19,7 +19,7 @@ interface KanbanTaskCardProps {
 }
 
 export function KanbanTaskCard({ task, isDragging = false }: KanbanTaskCardProps) {
-  const { updateTaskNotes, updateTaskCategory } = useApp();
+  const { updateTaskNotes, updateTaskCategory } = useDatabaseApp();
   const [showNotes, setShowNotes] = useState(false);
 
   const {

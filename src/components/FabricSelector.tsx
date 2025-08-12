@@ -1,8 +1,8 @@
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { Fabric } from '../types';
 
 export function FabricSelector() {
-  const { state, setCurrentFabric, getFabricProgress } = useApp();
+  const { state, setCurrentFabric, getFabricProgress } = useDatabaseApp();
 
   const getFabricStatusColor = (fabricId: string) => {
     const progress = getFabricProgress(fabricId);

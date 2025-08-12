@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { Check, Clock, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { useWebSocket } from '../hooks/useWebSocket';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export function AutoSaveStatus() {
-  const { state } = useApp();
+  const { state } = useDatabaseApp();
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const { isConnected } = useWebSocket({});

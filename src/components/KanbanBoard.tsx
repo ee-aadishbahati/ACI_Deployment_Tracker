@@ -9,7 +9,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { Task } from '../types';
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { KanbanColumn } from './KanbanColumn';
 import { KanbanTaskCard } from './KanbanTaskCard';
 import { Search, Filter } from 'lucide-react';
@@ -22,7 +22,7 @@ const KANBAN_COLUMNS = [
 ] as const;
 
 export function KanbanBoard() {
-  const { state, updateTaskKanbanStatus } = useApp();
+  const { state, updateTaskKanbanStatus } = useDatabaseApp();
   const [activeTask, setActiveTask] = useState<(Task & { checked: boolean; kanbanStatus: string; notes: string }) | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');

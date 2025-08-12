@@ -12,12 +12,14 @@ interface UseWebSocketProps {
   onTaskStateUpdate?: (fabricId: string, taskId: string, checked: boolean) => void;
   onTaskNotesUpdate?: (fabricId: string, taskId: string, notes: string) => void;
   onTaskCategoryUpdate?: (fabricId: string, taskId: string, category: string) => void;
+  onTaskKanbanUpdate?: (fabricId: string, taskId: string, kanbanStatus: string) => void;
 }
 
 export const useWebSocket = ({
   onTaskStateUpdate,
   onTaskNotesUpdate,
   onTaskCategoryUpdate,
+  onTaskKanbanUpdate,
 }: UseWebSocketProps) => {
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -63,6 +65,7 @@ export const useWebSocket = ({
               break;
             case 'task_kanban_updated':
               console.log('WebSocket: Received kanban status update', message.data);
+              onTaskKanbanUpdate?.(message.fabricId, message.taskId, message.data.kanbanStatus);
               break;
           }
         } catch (error) {

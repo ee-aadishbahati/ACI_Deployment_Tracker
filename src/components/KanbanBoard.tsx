@@ -96,6 +96,8 @@ export function KanbanBoard() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
+    console.log('Kanban: Drag ended', { active: active.id, over: over?.id });
+    
     if (!over) {
       setActiveTask(null);
       return;
@@ -103,6 +105,8 @@ export function KanbanBoard() {
 
     const taskId = active.id as string;
     const newStatus = over.id as string;
+    
+    console.log('Kanban: Updating task status', { taskId, newStatus });
     
     if (KANBAN_COLUMNS.some(col => col.id === newStatus)) {
       updateTaskKanbanStatus(taskId, newStatus);

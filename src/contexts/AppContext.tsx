@@ -419,6 +419,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         payload: { taskId, category: category as TaskCategory, fabricId }
       });
     },
+    onTaskKanbanUpdate: (fabricId: string, taskId: string, kanbanStatus: string) => {
+      dispatch({
+        type: 'UPDATE_TASK_KANBAN_STATUS',
+        payload: { taskId, kanbanStatus, fabricId }
+      });
+    },
   });
 
   const isLocalStorageAvailable = () => {

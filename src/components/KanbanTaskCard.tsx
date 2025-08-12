@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSortable } from '@dnd-kit/sortable';
+import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Task } from '../types';
 import { useApp } from '../contexts/AppContext';
@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 interface KanbanTaskCardProps {
-  task: Task;
+  task: Task & { checked: boolean; kanbanStatus: string; notes: string };
   isDragging?: boolean;
 }
 
@@ -27,15 +27,17 @@ export function KanbanTaskCard({ task, isDragging = false }: KanbanTaskCardProps
     listeners,
     setNodeRef,
     transform,
-    transition,
-    isDragging: isSortableDragging,
-  } = useSortable({
+    isDragging: isDraggableActive,
+  } = useDraggable({
     id: task.id,
+    data: {
+      type: 'task',
+      task,
+    },
   });
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
   };
 
   const getPriorityColor = (priority?: string) => {
@@ -71,7 +73,7 @@ export function KanbanTaskCard({ task, isDragging = false }: KanbanTaskCardProps
     updateTaskCategory(task.id, category as any);
   };
 
-  if (isDragging || isSortableDragging) {
+  if (isDragging || isDraggableActive) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-blue-500 p-4 opacity-50 rotate-3">
         <div className="font-medium text-gray-900 dark:text-gray-100 line-clamp-2">
@@ -85,13 +87,14 @@ export function KanbanTaskCard({ task, isDragging = false }: KanbanTaskCardProps
     <div
       ref={setNodeRef}
       style={style}
+      data-task-id={task.id}
       className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow cursor-pointer"
+      {...attributes}
     >
       {/* Drag Handle */}
       <div
-        {...attributes}
         {...listeners}
-        className="flex items-center justify-between mb-2"
+        className="flex items-center justify-between mb-2 cursor-grab active:cursor-grabbing"
       >
         <div className="flex items-center space-x-2">
           <GripVertical className="h-4 w-4 text-gray-400 cursor-grab active:cursor-grabbing" />

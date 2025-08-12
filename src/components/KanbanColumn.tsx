@@ -1,8 +1,4 @@
 import { useDroppable } from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
 import { Task } from '../types';
 import { KanbanTaskCard } from './KanbanTaskCard';
 
@@ -10,17 +6,22 @@ interface KanbanColumnProps {
   id: string;
   title: string;
   color: string;
-  tasks: Task[];
+  tasks: (Task & { checked: boolean; kanbanStatus: string; notes: string })[];
 }
 
 export function KanbanColumn({ id, title, color, tasks }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id,
+    data: {
+      type: 'column',
+      columnId: id,
+    },
   });
 
   return (
     <div
       ref={setNodeRef}
+      data-column={id}
       className={`rounded-lg border-2 border-dashed p-4 min-h-[500px] transition-colors ${
         isOver ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : color
       }`}
@@ -34,13 +35,11 @@ export function KanbanColumn({ id, title, color, tasks }: KanbanColumnProps) {
         </span>
       </div>
 
-      <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
-        <div className="space-y-3">
-          {tasks.map(task => (
-            <KanbanTaskCard key={task.id} task={task} />
-          ))}
-        </div>
-      </SortableContext>
+      <div className="space-y-3">
+        {tasks.map(task => (
+          <KanbanTaskCard key={task.id} task={task} />
+        ))}
+      </div>
 
       {tasks.length === 0 && (
         <div className="text-center text-gray-500 dark:text-gray-400 mt-8">

@@ -1,5 +1,5 @@
 import { Section, Task } from '../types';
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { TaskItem } from './TaskItem';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -16,7 +16,7 @@ export function TaskSection({
   onTaskSelect, 
   bulkMode = false 
 }: TaskSectionProps) {
-  const { state, dispatch } = useApp();
+  const { state, dispatch } = useDatabaseApp();
   const currentFabric = state.fabrics.find(f => f.id === state.currentFabric);
   
   const toggleSection = () => {

@@ -57,6 +57,8 @@ function setupIPC() {
     fs.mkdirSync(savedWorkDir, { recursive: true });
   }
 
+  let databaseService = null;
+
   ipcMain.handle('save-to-local', async (event, data) => {
     try {
       const now = new Date();
@@ -89,6 +91,69 @@ function setupIPC() {
 
   ipcMain.handle('get-saved-work-dir', async () => {
     return path.join(app.getPath('userData'), 'SavedWork');
+  });
+
+  ipcMain.handle('init-database', async () => {
+    try {
+      if (!databaseService) {
+        const { DatabaseService } = require('../src/services/DatabaseService');
+        const dbPath = path.join(app.getPath('userData'), 'aci-deployment-tracker.db');
+        databaseService = DatabaseService.getInstance({ dbPath });
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Database initialization error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('migrate-from-localstorage', async (event, data) => {
+    try {
+      if (!databaseService) {
+        const { DatabaseService } = require('../src/services/DatabaseService');
+        const dbPath = path.join(app.getPath('userData'), 'aci-deployment-tracker.db');
+        databaseService = DatabaseService.getInstance({ dbPath });
+      }
+      
+      databaseService.migrateFromLocalStorage(data);
+      return { success: true };
+    } catch (error) {
+      console.error('Migration error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('create-backup', async () => {
+    try {
+      if (!databaseService) {
+        return { success: false, error: 'Database not initialized' };
+      }
+      
+      const backupPath = databaseService.createBackup();
+      return { success: true, backupPath };
+    } catch (error) {
+      console.error('Backup error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('get-database-path', async () => {
+    return path.join(app.getPath('userData'), 'aci-deployment-tracker.db');
+  });
+
+  ipcMain.handle('log-error', async (event, error) => {
+    try {
+      console.error('Application Error:', error);
+      
+      if (databaseService) {
+        databaseService.logError(error);
+      }
+      
+      return { success: true };
+    } catch (dbError) {
+      console.error('Failed to log error to database:', dbError);
+      return { success: false, error: dbError.message };
+    }
   });
 }
 

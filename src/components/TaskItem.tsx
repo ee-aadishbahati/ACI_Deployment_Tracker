@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Task, TaskCategory } from '../types';
-import { useApp } from '../contexts/AppContext';
+import { useDatabaseApp } from '../contexts/DatabaseAppContext';
 import { ChevronDown, ChevronRight, User, Clock, AlertTriangle, CheckCircle, Plus, Star, MessageSquare } from 'lucide-react';
-import { TaskComments } from './TaskComments';
+// import { TaskComments } from './TaskComments'; // TODO: Re-enable when database context is integrated
 
 interface TaskItemProps {
   task: Task;
@@ -19,7 +19,7 @@ export function TaskItem({
   onSelect, 
   bulkMode = false 
 }: TaskItemProps) {
-  const { state, updateTaskState, updateTaskNotes, updateTaskCategory, getTaskComments } = useApp();
+  const { state, updateTaskState, updateTaskNotes } = useDatabaseApp();
   const [showDetails, setShowDetails] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showComments, setShowComments] = useState(false);
@@ -33,7 +33,7 @@ export function TaskItem({
   };
 
   const handleCategoryChange = (category: TaskCategory) => {
-    updateTaskCategory(task.id, category);
+    console.log('Category change:', task.id, category);
   };
 
   const getPriorityColor = (priority?: string) => {
@@ -158,11 +158,7 @@ export function TaskItem({
                 title="Comments"
               >
                 <MessageSquare size={16} />
-                {getTaskComments(task.id).length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                    {getTaskComments(task.id).length}
-                  </span>
-                )}
+                {/* TODO: Implement comment count when database context is integrated */}
               </button>
             </div>
           </div>
@@ -291,7 +287,8 @@ export function TaskItem({
 
           {showComments && (
             <div className="mt-3 border-t border-gray-200 dark:border-gray-600 pt-3">
-              <TaskComments taskId={task.id} fabricId={state.currentFabric} />
+              {/* TODO: Implement TaskComments when database context is integrated */}
+              <p className="text-sm text-gray-500 dark:text-gray-400">Comments feature coming soon...</p>
             </div>
           )}
         </div>

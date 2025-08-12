@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { AppProvider } from './contexts/AppContext';
+// import { AppProvider } from './contexts/AppContext'; // Replaced with DatabaseAppProvider
+import { DatabaseAppProvider } from './contexts/DatabaseAppContext';
+import { NotificationProvider } from './components/common/NotificationSystem';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { FabricSelector } from './components/FabricSelector';
 import { FabricDashboard } from './components/FabricDashboard';
@@ -14,7 +17,7 @@ import { TaskCreator } from './components/TaskCreator';
 import { CompletedTasks } from './components/CompletedTasks';
 import { KanbanBoard } from './components/KanbanBoard';
 import { NotificationCenter } from './components/NotificationCenter';
-import { useApp } from './contexts/AppContext';
+import { useDatabaseApp } from './contexts/DatabaseAppContext';
 import { Toaster } from 'react-hot-toast';
 import { apiService } from './services/api';
 import { 
@@ -34,7 +37,7 @@ import {
 } from 'lucide-react';
 
 function AppContent() {
-  const { state, dispatch, setSearchQuery } = useApp();
+  const { state, dispatch, setSearchQuery } = useDatabaseApp();
   const [activeView, setActiveView] = useState<'dashboard' | 'tasks' | 'kanban' | 'priorities' | 'create-task' | 'completed-tasks'>('dashboard');
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [bulkMode, setBulkMode] = useState(false);
@@ -505,11 +508,15 @@ function AppContent() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <NotificationProvider>
+        <ThemeProvider>
+          <DatabaseAppProvider>
+            <AppContent />
+          </DatabaseAppProvider>
+        </ThemeProvider>
+      </NotificationProvider>
+    </ErrorBoundary>
   );
 }
 

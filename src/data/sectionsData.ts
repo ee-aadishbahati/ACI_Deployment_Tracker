@@ -1,21 +1,12 @@
 import { Section, Task } from '../types';
 import { testCasesMapping } from './testCasesData';
+import { IdGenerationService } from '../services/IdGenerationService';
 
 function createTaskWithTestCase(text: string, fabricSpecific: boolean = true, ndoCentralized: boolean = false): Task {
   const testCase = testCasesMapping[text];
   
-  const createDeterministicId = (text: string): string => {
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return `task-${Math.abs(hash).toString(36)}`;
-  };
-  
   return {
-    id: createDeterministicId(text),
+    id: IdGenerationService.generateTaskId(),
     text,
     checked: false,
     notes: '',

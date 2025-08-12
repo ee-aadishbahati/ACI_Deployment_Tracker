@@ -50,12 +50,14 @@ export function CommentInput({
       const mentions = extractMentions(content);
       
       await addComment({
+        id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         taskId,
         fabricId,
         userId: state.currentUser,
         content: content.trim(),
         mentions,
-        parentCommentId
+        parentCommentId,
+        timestamp: new Date()
       });
       
       setContent('');

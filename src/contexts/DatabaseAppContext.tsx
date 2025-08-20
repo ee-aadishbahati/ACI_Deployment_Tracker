@@ -9,9 +9,24 @@ interface DatabaseAppContextType {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
   getCurrentFabricTasks: () => Task[];
+  getCompletedTasks: () => Task[];
   getFabricProgress: (fabricId: string) => FabricProgress;
   updateTaskState: (taskId: string, checked: boolean, fabricId?: string) => Promise<void>;
+  updateTaskStateAcrossSelectedFabrics: (taskId: string, checked: boolean, fabricIds: string[]) => Promise<void>;
   updateTaskNotes: (taskId: string, notes: string, fabricId?: string) => Promise<void>;
+  updateTaskCategory: (taskId: string, category: any, fabricId?: string) => Promise<void>;
+  updateTaskCategoryAcrossSelectedFabrics: (taskId: string, category: any, fabricIds: string[]) => Promise<void>;
+  updateTaskKanbanStatus: (taskId: string, kanbanStatus: string, fabricId?: string) => Promise<void>;
+  getTaskComments: (taskId: string) => any[];
+  addComment: (comment: any) => Promise<void>;
+  updateComment: (comment: any) => Promise<void>;
+  deleteComment: (commentId: string, taskId: string) => Promise<void>;
+  getUnreadNotifications: () => any[];
+  markNotificationRead: (notificationId: string) => Promise<void>;
+  clearNotifications: () => Promise<void>;
+  addTask: (sectionId: string, subsectionTitle: string, task: any) => Promise<void>;
+  addSubsection: (sectionId: string, subsectionTitle: string) => Promise<void>;
+  cloneTasksAcrossFabrics: (taskIds: string[], sourceFabricId: string, targetFabricIds: string[]) => Promise<void>;
   setCurrentFabric: (fabricId: string) => void;
   setSearchQuery: (query: string) => void;
   saveSubChecklist: (name: string, items: any[]) => Promise<void>;
@@ -100,6 +115,64 @@ function appReducer(state: AppState, action: AppAction): AppState {
             ? { ...section, expanded: !section.expanded }
             : section
         )
+      };
+    
+    case 'UPDATE_TASK_CATEGORY':
+      const { taskId: catTaskId, category, fabricId: catFabricId } = action.payload;
+      return {
+        ...state,
+        taskCategories: {
+          ...state.taskCategories,
+          [catFabricId]: {
+            ...state.taskCategories[catFabricId],
+            [catTaskId]: category
+          }
+        }
+      };
+    
+    case 'UPDATE_TASK_KANBAN_STATUS':
+      const { taskId: kanbanTaskId, kanbanStatus, fabricId: kanbanFabricId } = action.payload;
+      return {
+        ...state,
+        taskKanbanStatus: {
+          ...state.taskKanbanStatus,
+          [kanbanFabricId]: {
+            ...state.taskKanbanStatus[kanbanFabricId],
+            [kanbanTaskId]: kanbanStatus
+          }
+        }
+      };
+    
+    case 'ADD_COMMENT':
+      const newComment = action.payload;
+      return {
+        ...state,
+        taskComments: {
+          ...state.taskComments,
+          [newComment.taskId]: [...(state.taskComments[newComment.taskId] || []), newComment]
+        }
+      };
+    
+    case 'UPDATE_COMMENT':
+      const updatedComment = action.payload;
+      return {
+        ...state,
+        taskComments: {
+          ...state.taskComments,
+          [updatedComment.taskId]: (state.taskComments[updatedComment.taskId] || []).map(c =>
+            c.id === updatedComment.id ? updatedComment : c
+          )
+        }
+      };
+    
+    case 'DELETE_COMMENT':
+      const { commentId, taskId: deleteTaskId } = action.payload;
+      return {
+        ...state,
+        taskComments: {
+          ...state.taskComments,
+          [deleteTaskId]: (state.taskComments[deleteTaskId] || []).filter(c => c.id !== commentId)
+        }
       };
     
     case 'LOAD_DATA':
@@ -222,14 +295,17 @@ export function DatabaseAppProvider({ children }: { children: React.ReactNode })
       fabricNotes: state.fabricNotes,
       testCaseStates: state.testCaseStates,
       subChecklists: state.subChecklists,
-      currentFabric: state.currentFabric
+      currentFabric: state.currentFabric,
+      taskComments: state.taskComments,
+      taskCategories: state.taskCategories,
+      taskKanbanStatus: state.taskKanbanStatus
     };
     
     if (window.electronAPI && 'initDatabase' in window.electronAPI) {
     } else {
       saveToLocalStorage(dataToSave);
     }
-  }, [state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.currentFabric, isReady]);
+  }, [state.fabricStates, state.fabricNotes, state.testCaseStates, state.subChecklists, state.currentFabric, state.taskComments, state.taskCategories, state.taskKanbanStatus, isReady]);
 
   const getCurrentFabricTasks = (): Task[] => {
     const currentFabric = state.fabrics.find(f => f.id === state.currentFabric);
@@ -417,9 +493,223 @@ export function DatabaseAppProvider({ children }: { children: React.ReactNode })
     }
   };
 
+  const getCompletedTasks = (): Task[] => {
+    const allCompletedTasks: Task[] = [];
+    state.fabrics.forEach(fabric => {
+      state.sections.forEach(section => {
+        section.subsections.forEach(subsection => {
+          subsection.tasks.forEach(task => {
+            if (state.fabricStates[fabric.id]?.[task.id]) {
+              allCompletedTasks.push({
+                ...task,
+                checked: true,
+                notes: state.fabricNotes[fabric.id]?.[task.id] || '',
+                fabricId: fabric.id
+              });
+            }
+          });
+        });
+      });
+    });
+    return allCompletedTasks;
+  };
+
+  const updateTaskStateAcrossSelectedFabrics = async (taskId: string, checked: boolean, fabricIds: string[]): Promise<void> => {
+    try {
+      for (const fabricId of fabricIds) {
+        dispatch({
+          type: 'UPDATE_TASK_STATE',
+          payload: { taskId, checked, fabricId }
+        });
+      }
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'updateTaskStateAcrossSelectedFabrics');
+      addNotification({
+        type: 'error',
+        title: 'Update Failed',
+        message: 'Failed to update task state across fabrics. Please try again.'
+      });
+      throw error;
+    }
+  };
+
+  const updateTaskCategory = async (taskId: string, category: any, fabricId?: string): Promise<void> => {
+    const targetFabricId = fabricId || state.currentFabric;
+    try {
+      dispatch({
+        type: 'UPDATE_TASK_CATEGORY',
+        payload: { taskId, category, fabricId: targetFabricId }
+      });
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'updateTaskCategory');
+      addNotification({
+        type: 'error',
+        title: 'Update Failed',
+        message: 'Failed to update task category. Please try again.'
+      });
+      throw error;
+    }
+  };
+
+  const updateTaskCategoryAcrossSelectedFabrics = async (taskId: string, category: any, fabricIds: string[]): Promise<void> => {
+    try {
+      for (const fabricId of fabricIds) {
+        dispatch({
+          type: 'UPDATE_TASK_CATEGORY',
+          payload: { taskId, category, fabricId }
+        });
+      }
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'updateTaskCategoryAcrossSelectedFabrics');
+      addNotification({
+        type: 'error',
+        title: 'Update Failed',
+        message: 'Failed to update task category across fabrics. Please try again.'
+      });
+      throw error;
+    }
+  };
+
+  const updateTaskKanbanStatus = async (taskId: string, kanbanStatus: string, fabricId?: string): Promise<void> => {
+    const targetFabricId = fabricId || state.currentFabric;
+    try {
+      dispatch({
+        type: 'UPDATE_TASK_KANBAN_STATUS',
+        payload: { taskId, kanbanStatus, fabricId: targetFabricId }
+      });
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'updateTaskKanbanStatus');
+      addNotification({
+        type: 'error',
+        title: 'Update Failed',
+        message: 'Failed to update task kanban status. Please try again.'
+      });
+      throw error;
+    }
+  };
+
+  const getTaskComments = (taskId: string) => {
+    return state.taskComments[taskId] || [];
+  };
+
+  const addComment = async (comment: any): Promise<void> => {
+    try {
+      dispatch({
+        type: 'ADD_COMMENT',
+        payload: comment
+      });
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'addComment');
+      addNotification({
+        type: 'error',
+        title: 'Comment Failed',
+        message: 'Failed to add comment. Please try again.'
+      });
+      throw error;
+    }
+  };
+
+  const updateComment = async (comment: any): Promise<void> => {
+    try {
+      dispatch({
+        type: 'UPDATE_COMMENT',
+        payload: comment
+      });
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'updateComment');
+      addNotification({
+        type: 'error',
+        title: 'Update Failed',
+        message: 'Failed to update comment. Please try again.'
+      });
+      throw error;
+    }
+  };
+
+  const deleteComment = async (commentId: string, taskId: string): Promise<void> => {
+    try {
+      dispatch({
+        type: 'DELETE_COMMENT',
+        payload: { commentId, taskId }
+      });
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'deleteComment');
+      addNotification({
+        type: 'error',
+        title: 'Delete Failed',
+        message: 'Failed to delete comment. Please try again.'
+      });
+      throw error;
+    }
+  };
+
+  const getUnreadNotifications = () => {
+    return state.notifications.filter(n => !n.read) || [];
+  };
+
+  const markNotificationRead = async (notificationId: string): Promise<void> => {
+    try {
+      console.log('markNotificationRead not implemented:', notificationId);
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'markNotificationRead');
+      throw error;
+    }
+  };
+
+  const clearNotifications = async (): Promise<void> => {
+    try {
+      console.log('clearNotifications not implemented');
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'clearNotifications');
+      throw error;
+    }
+  };
+
+  const addTask = async (sectionId: string, subsectionTitle: string, task: any): Promise<void> => {
+    try {
+      console.log('addTask not implemented:', sectionId, subsectionTitle, task);
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'addTask');
+      addNotification({
+        type: 'error',
+        title: 'Add Failed',
+        message: 'Failed to add task. Please try again.'
+      });
+      throw error;
+    }
+  };
+
+  const addSubsection = async (sectionId: string, subsectionTitle: string): Promise<void> => {
+    try {
+      console.log('addSubsection not implemented:', sectionId, subsectionTitle);
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'addSubsection');
+      addNotification({
+        type: 'error',
+        title: 'Add Failed',
+        message: 'Failed to add subsection. Please try again.'
+      });
+      throw error;
+    }
+  };
+
+  const cloneTasksAcrossFabrics = async (taskIds: string[], sourceFabricId: string, targetFabricIds: string[]): Promise<void> => {
+    try {
+      console.log('cloneTasksAcrossFabrics not implemented:', taskIds, sourceFabricId, targetFabricIds);
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error, 'cloneTasksAcrossFabrics');
+      addNotification({
+        type: 'error',
+        title: 'Clone Failed',
+        message: 'Failed to clone tasks across fabrics. Please try again.'
+      });
+      throw error;
+    }
+  };
+
   const createBackup = async (): Promise<string | null> => {
     try {
-      if (window.electronAPI && 'createBackup' in window.electronAPI) {
+      if (typeof window !== 'undefined' && window.electronAPI && 'createBackup' in window.electronAPI) {
         const result = await window.electronAPI.createBackup();
         
         if (result.success) {
@@ -435,7 +725,35 @@ export function DatabaseAppProvider({ children }: { children: React.ReactNode })
         }
       }
       
-      return null;
+      const backupData = {
+        fabricStates: state.fabricStates,
+        fabricNotes: state.fabricNotes,
+        testCaseStates: state.testCaseStates,
+        subChecklists: state.subChecklists,
+        taskComments: state.taskComments,
+        taskCategories: state.taskCategories,
+        taskKanbanStatus: state.taskKanbanStatus,
+        timestamp: new Date().toISOString()
+      };
+      
+      const backupBlob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+      const backupUrl = URL.createObjectURL(backupBlob);
+      const backupFilename = `aci-deployment-backup-${new Date().toISOString().split('T')[0]}.json`;
+      
+      const downloadLink = document.createElement('a');
+      downloadLink.href = backupUrl;
+      downloadLink.download = backupFilename;
+      downloadLink.click();
+      
+      URL.revokeObjectURL(backupUrl);
+      
+      addNotification({
+        type: 'success',
+        title: 'Backup Created',
+        message: `Database backup downloaded as ${backupFilename}`
+      });
+      
+      return backupFilename;
     } catch (error) {
       ErrorHandler.handleDatabaseError(error, 'createBackup');
       
@@ -453,9 +771,24 @@ export function DatabaseAppProvider({ children }: { children: React.ReactNode })
     state,
     dispatch,
     getCurrentFabricTasks,
+    getCompletedTasks,
     getFabricProgress,
     updateTaskState,
+    updateTaskStateAcrossSelectedFabrics,
     updateTaskNotes,
+    updateTaskCategory,
+    updateTaskCategoryAcrossSelectedFabrics,
+    updateTaskKanbanStatus,
+    getTaskComments,
+    addComment,
+    updateComment,
+    deleteComment,
+    getUnreadNotifications,
+    markNotificationRead,
+    clearNotifications,
+    addTask,
+    addSubsection,
+    cloneTasksAcrossFabrics,
     setCurrentFabric,
     setSearchQuery,
     saveSubChecklist,
